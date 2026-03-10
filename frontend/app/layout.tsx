@@ -47,8 +47,14 @@ export default function RootLayout({
                 <a href="/" className="hover:text-orange-100 transition-colors">
                   发现优惠
                 </a>
+                <a
+                  href="/voice"
+                  className="flex items-center gap-1 bg-white/20 hover:bg-white/30 px-3 py-1 rounded-full transition-colors"
+                >
+                  🎤 语音发布
+                </a>
                 <a href="/merchant" className="hover:text-orange-100 transition-colors">
-                  商家发布
+                  商家
                 </a>
               </nav>
             </div>

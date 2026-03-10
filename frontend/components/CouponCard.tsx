@@ -43,6 +43,7 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
   );
   const [claimed, setClaimed] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
 
   const BACKEND_URL =
     process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
@@ -66,6 +67,22 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
     Math.round((coupon.usedCount / coupon.totalQuota) * 100)
   );
   const isSoldOut = coupon.usedCount >= coupon.totalQuota;
+
+  async function handleShare() {
+    const remaining = coupon.expiresAt - Date.now();
+    const mins = Math.max(0, Math.floor(remaining / 60000));
+    const text = `【限时优惠】${coupon.shopName}\n${coupon.item} ${coupon.discount}，还剩 ${mins} 分钟，限 ${coupon.totalQuota} 人！`;
+    const url = window.location.origin;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: `${coupon.shopName} 限时优惠`, text, url });
+      } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(`${text}\n${url}`);
+      setShareCopied(true);
+      setTimeout(() => setShareCopied(false), 2500);
+    }
+  }
 
   async function handleClaim() {
     if (claimed || isSoldOut || isExpired || claiming) return;
@@ -163,31 +180,42 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
           </div>
         </div>
 
-        {/* 领取按钮 */}
-        <button
-          onClick={handleClaim}
-          disabled={isExpired || isSoldOut || claimed || claiming}
-          className={[
-            'w-full py-2.5 rounded-xl font-semibold text-sm transition-all duration-200',
-            claimed
-              ? 'bg-green-500 text-white cursor-default'
-              : isSoldOut || isExpired
-              ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+        {/* 领取 + 分享 */}
+        <div className="flex gap-2">
+          <button
+            onClick={handleClaim}
+            disabled={isExpired || isSoldOut || claimed || claiming}
+            className={[
+              'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200',
+              claimed
+                ? 'bg-green-500 text-white cursor-default'
+                : isSoldOut || isExpired
+                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : claiming
+                ? 'bg-orange-300 text-white cursor-wait'
+                : 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white shadow-sm',
+            ].join(' ')}
+          >
+            {claimed
+              ? '✓ 已领取，出示给店员'
+              : isSoldOut
+              ? '已抢完'
+              : isExpired
+              ? '已过期'
               : claiming
-              ? 'bg-orange-300 text-white cursor-wait'
-              : 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white shadow-sm',
-          ].join(' ')}
-        >
-          {claimed
-            ? '✓ 已领取，出示给店员'
-            : isSoldOut
-            ? '已抢完'
-            : isExpired
-            ? '已过期'
-            : claiming
-            ? '领取中...'
-            : '立即领取'}
-        </button>
+              ? '领取中...'
+              : '立即领取'}
+          </button>
+          {!isExpired && (
+            <button
+              onClick={handleShare}
+              className="px-3 py-2.5 rounded-xl text-sm border border-gray-200 hover:border-orange-300 text-gray-500 hover:text-orange-500 transition-all active:scale-95"
+              title="分享"
+            >
+              {shareCopied ? '✓' : '📤'}
+            </button>
+          )}
+        </div>
 
         {/* 区域 / 分类 */}
         {(coupon.area || coupon.category) && (

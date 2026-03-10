@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid';
 import webpush from 'web-push';
 import { Server as SocketServer } from 'socket.io';
 import { Coupon, PublishCouponBody, WebPushSubscription } from '../types';
+import { parseVoiceTranscript } from '../services/ai-parser';
 import {
   saveCoupon,
   getActiveCoupons,
@@ -89,6 +90,23 @@ export function createCouponRouter(io: SocketServer): Router {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       res.status(500).json({ error: `Failed to fetch coupons: ${message}` });
+    }
+  });
+
+  // ─── POST /api/coupons/voice/parse ────────────────────────────────────────
+  // 用 Claude AI 将语音转录文本解析为结构化优惠券字段
+  router.post('/voice/parse', async (req: Request, res: Response) => {
+    const { transcript } = req.body as { transcript?: string };
+    if (!transcript?.trim()) {
+      res.status(400).json({ error: 'Missing transcript' });
+      return;
+    }
+    try {
+      const parsed = await parseVoiceTranscript(transcript.trim());
+      res.json(parsed);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Parse failed';
+      res.status(500).json({ error: message });
     }
   });
 
