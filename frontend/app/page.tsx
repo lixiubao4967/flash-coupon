@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import CouponCard from '@/components/CouponCard';
 import { Coupon } from '@/lib/types';
 import { getSocket } from '@/lib/socket';
@@ -16,6 +16,8 @@ export default function HomePage() {
   const [error, setError] = useState('');
   const [connected, setConnected] = useState(false);
   const [pushEnabled, setPushEnabled] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
 
   // 从后端加载现有活跃优惠券
   const fetchCoupons = useCallback(async () => {
@@ -95,7 +97,21 @@ export default function HomePage() {
     }
   }
 
-  const activeCoupons = coupons.filter((c) => c.expiresAt > Date.now());
+  const allCategories = useMemo(
+    () => [...new Set(coupons.map((c) => c.category).filter(Boolean) as string[])].sort(),
+    [coupons]
+  );
+  const allAreas = useMemo(
+    () => [...new Set(coupons.map((c) => c.area).filter(Boolean) as string[])].sort(),
+    [coupons]
+  );
+
+  const activeCoupons = coupons.filter((c) => {
+    if (c.expiresAt <= Date.now()) return false;
+    if (selectedCategory && c.category !== selectedCategory) return false;
+    if (selectedArea && c.area !== selectedArea) return false;
+    return true;
+  });
 
   return (
     <div className="space-y-5">
@@ -135,6 +151,68 @@ export default function HomePage() {
           实时发现周边商家发布的短时效优惠券
         </p>
       </div>
+
+      {/* 分类筛选 */}
+      {allCategories.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory('')}
+            className={[
+              'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
+              !selectedCategory
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300',
+            ].join(' ')}
+          >
+            全分类
+          </button>
+          {allCategories.map((cat) => (
+            <button
+              key={cat}
+              onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
+              className={[
+                'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
+                selectedCategory === cat
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300',
+              ].join(' ')}
+            >
+              {cat}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* 地区筛选 */}
+      {allAreas.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setSelectedArea('')}
+            className={[
+              'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
+              !selectedArea
+                ? 'bg-blue-500 text-white border-blue-500'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300',
+            ].join(' ')}
+          >
+            全地区
+          </button>
+          {allAreas.map((area) => (
+            <button
+              key={area}
+              onClick={() => setSelectedArea(area === selectedArea ? '' : area)}
+              className={[
+                'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
+                selectedArea === area
+                  ? 'bg-blue-500 text-white border-blue-500'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300',
+              ].join(' ')}
+            >
+              {area}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* 内容区域 */}
       {loading && (

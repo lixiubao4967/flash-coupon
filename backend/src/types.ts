@@ -1,3 +1,5 @@
+export type CouponSource = 'manual' | 'hotpepper' | 'social';
+
 export interface Coupon {
   id: string;
   shopId: string;
@@ -12,6 +14,10 @@ export interface Coupon {
   radiusKm: number;
   totalQuota: number;
   usedCount: number;
+  source: CouponSource;    // 数据来源
+  category: string;        // 分类，如 "ラーメン"、"居酒屋"
+  area: string;            // 地区，如 "渋谷"、"新宿"
+  originalUrl?: string;    // 外部原文链接（Hot Pepper / X 帖子）
 }
 
 export interface PublishCouponBody {
@@ -24,6 +30,8 @@ export interface PublishCouponBody {
   location: { lat: number; lng: number };
   radiusKm: number;
   totalQuota: number;
+  category?: string;
+  area?: string;
 }
 
 export interface WebPushSubscription {

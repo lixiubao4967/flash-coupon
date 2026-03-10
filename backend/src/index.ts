@@ -2,9 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import cron from 'node-cron';
 import { Server as SocketServer } from 'socket.io';
 import { createCouponRouter } from './routes/coupons';
 import { getRedisClient } from './services/redis';
+import { fetchHotPepperCoupons } from './services/hotpepper';
+import { fetchGrokSocialCoupons } from './services/grok';
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -54,6 +57,27 @@ async function bootstrap() {
     console.log(`[Server] Socket.io ready`);
     console.log(`[Server] Allowing CORS from: ${FRONTEND_URL}`);
   });
+
+  // ─── 定时抓取任务 ──────────────────────────────────────────────────────────
+  // Hot Pepper：每 30 分钟拉取一次
+  cron.schedule('*/30 * * * *', () => {
+    console.log('[Cron] Running Hot Pepper coupon fetch...');
+    fetchHotPepperCoupons().catch((err: Error) =>
+      console.error('[Cron] Hot Pepper error:', err.message)
+    );
+  });
+
+  // Grok / X 社交：每 15 分钟拉取一次
+  cron.schedule('*/15 * * * *', () => {
+    console.log('[Cron] Running Grok social coupon fetch...');
+    fetchGrokSocialCoupons().catch((err: Error) =>
+      console.error('[Cron] Grok error:', err.message)
+    );
+  });
+
+  // 启动时立即执行一次
+  fetchHotPepperCoupons().catch(console.error);
+  fetchGrokSocialCoupons().catch(console.error);
 
   // ─── 优雅关闭 ──────────────────────────────────────────────────────────────
   process.on('SIGTERM', async () => {

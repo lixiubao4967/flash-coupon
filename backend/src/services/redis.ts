@@ -46,6 +46,21 @@ export async function saveCoupon(coupon: Coupon): Promise<void> {
 }
 
 /**
+ * 获取活跃优惠券，支持按分类和地区过滤
+ */
+export async function getActiveCouponsByFilter(
+  category?: string,
+  area?: string
+): Promise<Coupon[]> {
+  const all = await getActiveCoupons();
+  return all.filter((c) => {
+    if (category && c.category !== category) return false;
+    if (area && c.area !== area) return false;
+    return true;
+  });
+}
+
+/**
  * 获取所有活跃优惠券（未过期）
  */
 export async function getActiveCoupons(): Promise<Coupon[]> {

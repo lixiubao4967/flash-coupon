@@ -25,8 +25,25 @@ npx web-push generate-vapid-keys
 ```
 
 Environment files needed:
-- `backend/.env` — PORT, FRONTEND_URL, REDIS_URL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT
+- `backend/.env` — PORT, FRONTEND_URL, REDIS_URL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, HOTPEPPER_API_KEY, GROK_API_KEY
 - `frontend/.env.local` — NEXT_PUBLIC_BACKEND_URL, NEXT_PUBLIC_VAPID_PUBLIC_KEY
+
+### ⚠️ 待完成（需要你操作）
+
+1. **Hot Pepper API Key**（免费）
+   - 注册 Recruit 开发者账号：https://webservice.recruit.co.jp/register/
+   - 创建应用，获取 API Key
+   - 填入 `backend/.env`：`HOTPEPPER_API_KEY=your_key`
+
+2. **Grok API Key**（xAI）
+   - 注册 xAI 开发者账号：https://console.x.ai/
+   - 创建 API Key
+   - 填入 `backend/.env`：`GROK_API_KEY=your_key`
+
+3. **可选：自定义搜索地区**（默认：渋谷,新宿,梅田,博多,名古屋）
+   - `backend/.env`：`GROK_SEARCH_AREAS=渋谷,新宿,梅田`
+
+> 两个 Key 均可选配——未配置时后端会打印 warn 并跳过对应抓取，不影响手动发布功能。
 
 ## Architecture
 
@@ -45,13 +62,15 @@ Full-stack PWA for real-time flash coupons. Merchants publish time-limited coupo
 4. Consumer claims → `POST /api/coupons/:id/use` → Redis increments `usedCount` → broadcasts `coupon-used`
 
 ### Key Files
-- `backend/src/index.ts` — Express app, Socket.io setup, CORS
+- `backend/src/index.ts` — Express app, Socket.io setup, CORS, cron jobs
 - `backend/src/routes/coupons.ts` — All API endpoints
 - `backend/src/services/redis.ts` — Redis operations (coupon storage in sorted set by expiry, subscription storage)
+- `backend/src/services/hotpepper.ts` — Hot Pepper Gourmet API 定时抓取（每 30 分钟）
+- `backend/src/services/grok.ts` — xAI Grok API 解析 X 社交帖子（每 15 分钟）
 - `backend/src/types.ts` — Shared `Coupon` interface
-- `frontend/app/page.tsx` — Consumer UI (real-time coupon list with countdown timers)
+- `frontend/app/page.tsx` — Consumer UI (real-time coupon list, category/area filter tabs)
 - `frontend/app/merchant/page.tsx` — Merchant publish form
-- `frontend/components/CouponCard.tsx` — Coupon display with countdown and quota bar
+- `frontend/components/CouponCard.tsx` — Coupon display with source badge, countdown and quota bar
 - `frontend/lib/socket.ts` — Socket.io client singleton
 - `frontend/lib/webpush.ts` — Web Push subscription logic
 - `frontend/public/sw.js` — Service Worker for offline support and caching
@@ -72,14 +91,18 @@ interface Coupon {
   radiusKm: number;
   totalQuota: number;
   usedCount: number;
+  source: 'manual' | 'hotpepper' | 'social';  // 数据来源
+  category: string;     // 分类，如 "ラーメン"
+  area: string;         // 地区，如 "渋谷"
+  originalUrl?: string; // 外部原文链接
 }
 ```
 
 ### API Endpoints
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/api/coupons` | All active coupons |
-| POST | `/api/coupons` | Publish coupon (201) |
+| GET | `/api/coupons` | All active coupons（支持 `?category=` `?area=` 过滤） |
+| POST | `/api/coupons` | Publish coupon (201)，可选字段 `category` `area` |
 | POST | `/api/coupons/:id/use` | Claim coupon (409 if quota exhausted) |
 | POST | `/api/coupons/push/subscribe` | Register Web Push subscription |
 | GET | `/health` | Health check |

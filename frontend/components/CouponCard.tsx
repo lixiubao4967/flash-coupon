@@ -1,7 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Coupon } from '@/lib/types';
+import { Coupon, CouponSource } from '@/lib/types';
+
+const SOURCE_CONFIG: Record<CouponSource, { label: string; bg: string; text: string }> = {
+  manual:    { label: '商家发布', bg: 'bg-orange-100', text: 'text-orange-700' },
+  hotpepper: { label: 'Hot Pepper', bg: 'bg-red-100', text: 'text-red-700' },
+  social:    { label: '来自 X',    bg: 'bg-sky-100',  text: 'text-sky-700'  },
+};
 
 interface CouponCardProps {
   coupon: Coupon;
@@ -96,13 +102,22 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
           isExpired ? 'bg-gray-400' : 'bg-gradient-to-r from-orange-500 to-red-500',
         ].join(' ')}
       >
-        <div>
-          <p className="text-white font-bold text-lg leading-tight">
-            {coupon.shopName}
-          </p>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-white font-bold text-lg leading-tight">
+              {coupon.shopName}
+            </p>
+            {coupon.source && SOURCE_CONFIG[coupon.source] && (
+              <span
+                className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${SOURCE_CONFIG[coupon.source].bg} ${SOURCE_CONFIG[coupon.source].text}`}
+              >
+                {SOURCE_CONFIG[coupon.source].label}
+              </span>
+            )}
+          </div>
           <p className="text-orange-100 text-sm">{coupon.item}</p>
         </div>
-        <div className="text-right">
+        <div className="text-right ml-2">
           <p className="text-white text-3xl font-black">{coupon.discount}</p>
           <p className="text-orange-100 text-xs">折扣</p>
         </div>
@@ -173,6 +188,26 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
             ? '领取中...'
             : '立即领取'}
         </button>
+
+        {/* 区域 / 分类 */}
+        {(coupon.area || coupon.category) && (
+          <div className="flex gap-3 text-xs text-gray-400">
+            {coupon.area && <span>📍 {coupon.area}</span>}
+            {coupon.category && <span>🍽 {coupon.category}</span>}
+          </div>
+        )}
+
+        {/* 外链（Hot Pepper / X 帖子） */}
+        {coupon.originalUrl && !claimed && (
+          <a
+            href={coupon.originalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-center text-xs text-blue-500 hover:text-blue-600 underline"
+          >
+            查看原始页面 →
+          </a>
+        )}
 
         {/* 地理信息 */}
         <p className="text-xs text-gray-400 text-center">

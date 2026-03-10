@@ -6,6 +6,7 @@ import { Coupon, PublishCouponBody, WebPushSubscription } from '../types';
 import {
   saveCoupon,
   getActiveCoupons,
+  getActiveCouponsByFilter,
   incrementUsedCount,
   saveSubscription,
   getAllSubscriptions,
@@ -51,6 +52,9 @@ export function createCouponRouter(io: SocketServer): Router {
       radiusKm: body.radiusKm,
       totalQuota: body.totalQuota,
       usedCount: 0,
+      source: 'manual',
+      category: body.category?.trim() || '',
+      area: body.area?.trim() || '',
     };
 
     try {
@@ -73,10 +77,14 @@ export function createCouponRouter(io: SocketServer): Router {
   });
 
   // ─── GET /api/coupons ──────────────────────────────────────────────────────
-  // 获取所有活跃优惠券
-  router.get('/', async (_req: Request, res: Response) => {
+  // 获取活跃优惠券，支持 ?category= 和 ?area= 过滤
+  router.get('/', async (req: Request, res: Response) => {
+    const category = req.query.category as string | undefined;
+    const area = req.query.area as string | undefined;
     try {
-      const coupons = await getActiveCoupons();
+      const coupons = category || area
+        ? await getActiveCouponsByFilter(category, area)
+        : await getActiveCoupons();
       res.json(coupons);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';

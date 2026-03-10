@@ -1,3 +1,5 @@
+export type CouponSource = 'manual' | 'hotpepper' | 'social';
+
 export interface Coupon {
   id: string;
   shopId: string;
@@ -12,6 +14,10 @@ export interface Coupon {
   radiusKm: number;
   totalQuota: number;
   usedCount: number;
+  source?: CouponSource;
+  category?: string;
+  area?: string;
+  originalUrl?: string;
 }
 
 export interface PublishCouponPayload {
@@ -24,4 +30,6 @@ export interface PublishCouponPayload {
   location: { lat: number; lng: number };
   radiusKm: number;
   totalQuota: number;
+  category?: string;
+  area?: string;
 }
