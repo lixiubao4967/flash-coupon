@@ -28,26 +28,29 @@ Environment files needed:
 - `backend/.env` — PORT, FRONTEND_URL, REDIS_URL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, ANTHROPIC_API_KEY, HOTPEPPER_API_KEY, GROK_API_KEY
 - `frontend/.env.local` — NEXT_PUBLIC_BACKEND_URL, NEXT_PUBLIC_VAPID_PUBLIC_KEY
 
-### ⚠️ 待完成（需要你操作）
+### ⚠️ 部署前需要你完成的事项
 
-1. **Anthropic API Key**（语音发布 AI 解析，必须）
-   - 注册：https://console.anthropic.com/
-   - 填入 `backend/.env`：`ANTHROPIC_API_KEY=your_key`
+#### Step 1 — 申请 API Keys
 
-2. **Hot Pepper API Key**（免费）
-   - 注册 Recruit 开发者账号：https://webservice.recruit.co.jp/register/
-   - 创建应用，获取 API Key
-   - 填入 `backend/.env`：`HOTPEPPER_API_KEY=your_key`
+| Key | 用途 | 是否必须 | 申请地址 |
+|-----|------|----------|----------|
+| `ANTHROPIC_API_KEY` | 语音发布 AI 解析（Claude Haiku） | **必须** | https://console.anthropic.com/ |
+| `HOTPEPPER_API_KEY` | 自动抓取 Hot Pepper 餐厅优惠 | 可选 | https://webservice.recruit.co.jp/register/ |
+| `GROK_API_KEY` | 解析 X 社交帖子中的优惠信息 | 可选 | https://console.x.ai/ |
 
-3. **Grok API Key**（xAI）
-   - 注册 xAI 开发者账号：https://console.x.ai/
-   - 创建 API Key
-   - 填入 `backend/.env`：`GROK_API_KEY=your_key`
+> Hot Pepper / Grok 未配置时后端会跳过对应抓取，语音发布和手动发布不受影响。
 
-4. **可选：自定义搜索地区**（默认：渋谷,新宿,梅田,博多,名古屋）
-   - `backend/.env`：`GROK_SEARCH_AREAS=渋谷,新宿,梅田`
+#### Step 2 — 生成 VAPID Keys（Web Push 通知）
 
-> Hot Pepper / Grok Key 均可选配——未配置时后端跳过对应抓取，不影响语音发布和手动发布功能。
+```bash
+cd backend
+npx web-push generate-vapid-keys
+# 复制输出的 Public Key 和 Private Key
+```
+
+#### Step 3 — 选择部署平台，填写 .env
+
+见下方「部署」章节。
 
 ## Architecture
 
@@ -124,59 +127,123 @@ interface Coupon {
 - Service Worker registered in `frontend/app/layout.tsx`
 - Tailwind uses a custom orange-based brand palette with a `pulse-fast` animation
 
-## Deployment (AWS)
+## 部署
 
-### Recommended Stack
-- **Frontend**: Vercel（免费，自动 CI/CD，连接 GitHub 仓库即可）
-- **Backend**: AWS EC2 或 Railway
-- **Redis**: [Upstash](https://upstash.com)（推荐，免费额度，无需自建，零运维）
+### 推荐组合
 
-### Redis — 使用 Upstash
-1. 注册 [upstash.com](https://upstash.com)，创建 Redis 数据库，选择离服务器最近的区域
-2. 复制 `Redis URL`（格式：`rediss://...`）
-3. 填入 `backend/.env`：
-   ```
-   REDIS_URL=rediss://your-upstash-url
-   ```
+| 服务 | 平台 | 费用 | 说明 |
+|------|------|------|------|
+| Frontend | Vercel | 免费 | 连 GitHub 自动 CI/CD |
+| Backend | Railway | 免费额度 / $5起 | 比 EC2 简单，支持 Socket.io |
+| Redis | Upstash | 免费额度 | 无需自建，提供 `rediss://` URL |
 
-### Backend 部署到 AWS EC2
+> **为什么不用 AWS EC2？** EC2 可以用，但 Railway 部署更简单（无需配置安全组、SSH），对个人项目更友好。如果已有 EC2 可参考末尾的 EC2 部分。
+
+---
+
+### 一、Upstash Redis
+
+1. 注册 [upstash.com](https://upstash.com) → Create Database → 选离用户最近的区域（日本用 ap-northeast-1）
+2. 复制 `REST URL` 旁边的 **Redis URL**（格式 `rediss://...`）
+3. 后续填入 `REDIS_URL`
+
+---
+
+### 二、Backend 部署到 Railway
+
+1. 注册 [railway.app](https://railway.app) → New Project → Deploy from GitHub repo
+2. 选择本仓库，设置 **Root Directory** 为 `backend`
+3. Railway 会自动检测 Node.js 并运行 `npm run build && npm start`
+4. 进入项目 → Variables，添加以下所有环境变量：
+
+```
+PORT=4000
+FRONTEND_URL=https://your-vercel-domain.vercel.app   # 第三步填写后回来更新
+REDIS_URL=rediss://your-upstash-url
+
+# Web Push（必填，用 npx web-push generate-vapid-keys 生成）
+VAPID_PUBLIC_KEY=your_vapid_public_key
+VAPID_PRIVATE_KEY=your_vapid_private_key
+VAPID_SUBJECT=mailto:you@example.com
+
+# AI 解析（语音发布功能必填）
+ANTHROPIC_API_KEY=your_anthropic_key
+
+# 自动抓取（可选）
+HOTPEPPER_API_KEY=your_hotpepper_key
+GROK_API_KEY=your_grok_key
+GROK_SEARCH_AREAS=渋谷,新宿,梅田,博多,名古屋
+```
+
+5. Deploy 后复制 Railway 分配的域名，格式为 `https://xxx.railway.app`
+
+---
+
+### 三、Frontend 部署到 Vercel
+
+1. 注册 [vercel.com](https://vercel.com) → Add New Project → Import GitHub repo
+2. 设置 **Root Directory** 为 `frontend`
+3. Framework Preset 选 **Next.js**（自动检测）
+4. 添加环境变量：
+
+```
+NEXT_PUBLIC_BACKEND_URL=https://xxx.railway.app   # Railway 域名
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your_vapid_public_key
+```
+
+5. Deploy → 复制 Vercel 域名（如 `https://flash-coupon.vercel.app`）
+6. **回到 Railway**，把 `FRONTEND_URL` 更新为 Vercel 域名，重新部署
+
+---
+
+### 四、验证部署
+
 ```bash
-# 服务器上安装 Node.js
-curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
-sudo apt install -y nodejs
+# 检查后端健康
+curl https://xxx.railway.app/health
 
-# 克隆项目，安装依赖，编译
-cd backend
+# 检查优惠券接口
+curl https://xxx.railway.app/api/coupons
+```
+
+打开 Vercel 域名，测试：
+- [ ] 首页能加载，连接状态显示绿点（Socket.io 正常）
+- [ ] 语音发布页（/voice）可以录音并解析
+- [ ] 商家发布页（/merchant）可以发布，首页实时出现
+
+---
+
+### 备选：Backend 部署到 AWS EC2
+
+```bash
+# EC2 上安装 Node.js 18
+curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+sudo apt install -y nodejs git
+
+# 克隆并编译
+git clone https://github.com/your/flash-coupon.git
+cd flash-coupon/backend
 npm install
 npm run build
 
-# 用 PM2 保持后台运行
+# 创建 .env（参考上方变量列表）
+nano .env
+
+# PM2 守护进程
 npm install -g pm2
 pm2 start dist/index.js --name flash-coupon-backend
-pm2 save
-pm2 startup   # 设置开机自启
+pm2 save && pm2 startup
 ```
 
-配置 `backend/.env`（生产环境）：
-```
-PORT=4000
-FRONTEND_URL=https://your-vercel-domain.vercel.app
-REDIS_URL=rediss://your-upstash-url
-VAPID_PUBLIC_KEY=...
-VAPID_PRIVATE_KEY=...
-VAPID_SUBJECT=mailto:you@example.com
-```
+EC2 注意事项：
+- 安全组需开放 **4000 端口**（入站 TCP）
+- `FRONTEND_URL` 填 Vercel 域名（CORS 白名单）
+- Vercel 的 `NEXT_PUBLIC_BACKEND_URL` 填 `http://your-ec2-ip:4000`
 
-### Frontend 部署到 Vercel
-1. 将代码推送到 GitHub
-2. 在 Vercel 导入仓库，设置 Root Directory 为 `frontend`
-3. 添加环境变量：
-   ```
-   NEXT_PUBLIC_BACKEND_URL=http://your-ec2-ip:4000
-   NEXT_PUBLIC_VAPID_PUBLIC_KEY=...
-   ```
+---
 
 ### 注意事项
-- EC2 安全组需开放 4000 端口（后端）
+
 - Next.js 15.0.3 有已知安全漏洞（CVE-2025-66478），生产部署前建议升级到最新版
-- 安装时前端需用 `npm install --legacy-peer-deps`（React 19.2.x 与 Next.js 15.0.3 peer deps 冲突）
+- 前端安装依赖需用 `npm install --legacy-peer-deps`（React 19.2.x 与 Next.js 15.0.3 peer deps 冲突）
+- Socket.io 需要 WebSocket 支持：Railway 默认支持；EC2 需确认 nginx/防火墙未阻断 WebSocket 升级
