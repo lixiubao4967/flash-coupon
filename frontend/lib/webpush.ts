@@ -33,7 +33,7 @@ export async function subscribeToPushNotifications(): Promise<boolean> {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
     });
 
     await fetch(`${BACKEND_URL}/api/coupons/push/subscribe`, {
