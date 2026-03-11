@@ -271,6 +271,62 @@ REDIS_URL=redis://127.0.0.1:6379
 
 ### 注意事项
 
-- Next.js 15.0.3 有已知安全漏洞（CVE-2025-66478），生产部署前建议升级到最新版
-- 前端安装依赖需用 `npm install --legacy-peer-deps`（React 19.2.x 与 Next.js 15.0.3 peer deps 冲突）
+- ~~Next.js 15.0.3 有已知安全漏洞（CVE-2025-66478）~~ → 已升级到 16.1.6，问题已修复
+- 前端安装依赖需用 `npm install --legacy-peer-deps`（React 19 与旧版 Next.js peer deps 冲突，升级后仍需此标志）
 - Socket.io 需要 WebSocket 支持：Railway 默认支持；EC2 需确认 nginx/防火墙未阻断 WebSocket 升级
+
+---
+
+## 实际部署记录（2026-03-12）
+
+### 当前部署方案
+- **Frontend**: Vercel — https://flash-coupon.vercel.app
+- **Backend**: AWS EC2（ap-northeast-1，IP: 13.115.193.55，端口 4000）
+- **Redis**: EC2 本地 Redis（redis://127.0.0.1:6379）
+
+### 遇到的问题与解决方案
+
+#### 问题 1：Vercel npm install 失败（peer deps 冲突）
+**报错**: `ERESOLVE could not resolve` — next@15.0.3 与 react@19 peer deps 不兼容
+**解决**: Vercel 项目 → Settings → General → Install Command 改为：
+```
+npm install --legacy-peer-deps
+```
+
+#### 问题 2：webpush.ts TypeScript 类型错误导致构建失败
+**报错**: `Type 'Uint8Array<ArrayBufferLike>' is not assignable to type 'string | BufferSource'`
+**解决**: `frontend/lib/webpush.ts` 第 36 行加类型断言：
+```ts
+applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as ArrayBuffer,
+```
+
+#### 问题 3：Vercel 因安全漏洞拒绝部署
+**报错**: `Vulnerable version of Next.js detected` (CVE-2025-66478)
+**解决**: 升级 Next.js 到最新版：
+```bash
+cd frontend && npm install next@latest --legacy-peer-deps
+```
+
+#### 问题 4：前端 "Failed to fetch"（Mixed Content）⚠️ 待解决
+**原因**: 前端是 HTTPS（Vercel），后端是 HTTP（EC2 裸 IP），浏览器阻止混合内容请求
+**现状**: 语音发布和商家发布功能正常（使用 POST），首页实时数据加载失败
+**解决方案（二选一）**：
+
+**方案 A：Cloudflare Tunnel（免费，无需域名，推荐）**
+```bash
+# EC2 上安装 cloudflared
+wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+sudo dpkg -i cloudflared-linux-amd64.deb
+
+# 启动隧道（每次重启需重新运行，建议用 pm2 守护）
+cloudflared tunnel --url http://localhost:4000
+# 输出一个 https://xxx.trycloudflare.com 地址
+```
+然后将 Vercel 的 `NEXT_PUBLIC_BACKEND_URL` 更新为该 HTTPS 地址，重新部署前端。
+
+**方案 B：Nginx 反向代理 + Let's Encrypt（需要域名）**
+```bash
+sudo apt install -y nginx certbot python3-certbot-nginx
+# 配置 nginx 反向代理到 localhost:4000
+# certbot --nginx -d your-domain.com
+```
