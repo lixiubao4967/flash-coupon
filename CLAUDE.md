@@ -35,7 +35,7 @@ Environment files needed:
 | Key | 用途 | 是否必须 | 申请地址 |
 |-----|------|----------|----------|
 | `ANTHROPIC_API_KEY` | 语音发布 AI 解析（Claude Haiku） | **必须** | https://console.anthropic.com/ |
-| `HOTPEPPER_API_KEY` | 自动抓取 Hot Pepper 餐厅优惠 | 可选 | https://webservice.recruit.co.jp/register/ |
+| `HOTPEPPER_API_KEY` | 自动抓取 Hot Pepper 餐厅优惠 | 可选 | https://webservice.recruit.co.jp/register |
 | `GROK_API_KEY` | 解析 X 社交帖子中的优惠信息 | 可选 | https://console.x.ai/ |
 
 > Hot Pepper / Grok 未配置时后端会跳过对应抓取，语音发布和手动发布不受影响。
@@ -239,6 +239,33 @@ EC2 注意事项：
 - 安全组需开放 **4000 端口**（入站 TCP）
 - `FRONTEND_URL` 填 Vercel 域名（CORS 白名单）
 - Vercel 的 `NEXT_PUBLIC_BACKEND_URL` 填 `http://your-ec2-ip:4000`
+
+---
+
+### 备选：使用 EC2 本地 Redis（替代 Upstash）
+
+如果 Backend 部署在 EC2 上，可以直接使用 EC2 本机安装的 Redis，无需 Upstash。
+
+```bash
+# 安装 Redis
+sudo apt update
+sudo apt install -y redis-server
+
+# 启动并设置开机自启
+sudo systemctl start redis-server
+sudo systemctl enable redis-server
+
+# 验证运行
+redis-cli ping   # 返回 PONG 即正常
+```
+
+`.env` 中 `REDIS_URL` 填本地地址：
+
+```
+REDIS_URL=redis://127.0.0.1:6379
+```
+
+> 注意：本地 Redis 默认无密码、仅监听 127.0.0.1，不对外暴露，安全性良好。如需设置密码，在 `/etc/redis/redis.conf` 中配置 `requirepass yourpassword`，并将 URL 改为 `redis://:yourpassword@127.0.0.1:6379`。
 
 ---
 
