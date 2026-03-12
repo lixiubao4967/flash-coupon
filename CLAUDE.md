@@ -307,26 +307,25 @@ applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as unknown as Arra
 cd frontend && npm install next@latest --legacy-peer-deps
 ```
 
-#### 问题 4：前端 "Failed to fetch"（Mixed Content）⚠️ 待解决
+#### 问题 4：前端 "Failed to fetch"（Mixed Content）✅ 已解决
 **原因**: 前端是 HTTPS（Vercel），后端是 HTTP（EC2 裸 IP），浏览器阻止混合内容请求
-**现状**: 语音发布和商家发布功能正常（使用 POST），首页实时数据加载失败
-**解决方案（二选一）**：
+**解决**: 使用 Cloudflare Tunnel 为 EC2 后端提供 HTTPS 地址，无需域名，免费。
 
-**方案 A：Cloudflare Tunnel（免费，无需域名，推荐）**
 ```bash
 # EC2 上安装 cloudflared
 wget https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
 sudo dpkg -i cloudflared-linux-amd64.deb
 
-# 启动隧道（每次重启需重新运行，建议用 pm2 守护）
-cloudflared tunnel --url http://localhost:4000
-# 输出一个 https://xxx.trycloudflare.com 地址
-```
-然后将 Vercel 的 `NEXT_PUBLIC_BACKEND_URL` 更新为该 HTTPS 地址，重新部署前端。
+# 用 pm2 守护（开机自启）
+pm2 start "cloudflared tunnel --url http://localhost:4000" --name cloudflared
+pm2 save
 
-**方案 B：Nginx 反向代理 + Let's Encrypt（需要域名）**
-```bash
-sudo apt install -y nginx certbot python3-certbot-nginx
-# 配置 nginx 反向代理到 localhost:4000
-# certbot --nginx -d your-domain.com
+# 查看分配的 HTTPS 地址
+pm2 logs cloudflared --lines 30
+# 找形如 https://xxx.trycloudflare.com 的行
 ```
+
+然后将 Vercel 环境变量 `NEXT_PUBLIC_BACKEND_URL` 更新为该 HTTPS 地址，重新部署前端。
+
+> ⚠️ Quick Tunnel 的域名**每次重启 cloudflared 会变**，需同步更新 Vercel 环境变量并重新部署。
+> 如需固定域名，注册 Cloudflare 账号后改用 Named Tunnel。

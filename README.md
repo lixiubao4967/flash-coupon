@@ -183,17 +183,34 @@ interface Coupon {
 
 ---
 
-## 部署（推荐：Vercel + Railway + Upstash）
+## 部署
 
 详细步骤见 [CLAUDE.md](./CLAUDE.md) 的「部署」章节。
 
-**简要流程：**
+### 方案一：Vercel + Railway + Upstash（推荐，全托管）
+
 1. [Upstash](https://upstash.com) 创建 Redis → 复制 `rediss://` URL
-2. [Railway](https://railway.app) 部署 `backend/`，填写所有环境变量
-3. [Vercel](https://vercel.com) 部署 `frontend/`，填写 Railway 域名
+2. [Railway](https://railway.app) 部署 `backend/`（Root Dir = `backend/`），填写所有环境变量
+3. [Vercel](https://vercel.com) 部署 `frontend/`（Root Dir = `frontend/`），填写 Railway 域名
 4. 回 Railway 更新 `FRONTEND_URL` 为 Vercel 域名，重新部署
 
-**需要申请的 Key：**
+### 方案二：Vercel + AWS EC2 + Cloudflare Tunnel（实测可行）
+
+1. EC2 安装 Node.js 18、Redis，克隆仓库，`npm run build`，pm2 启动后端
+2. [Vercel](https://vercel.com) 部署 `frontend/`
+3. EC2 安装 cloudflared，用 pm2 守护隧道，获取 `https://xxx.trycloudflare.com` 地址
+4. Vercel 环境变量 `NEXT_PUBLIC_BACKEND_URL` 填隧道 HTTPS 地址，重新部署
+
+```bash
+# EC2：启动 Cloudflare Tunnel
+pm2 start "cloudflared tunnel --url http://localhost:4000" --name cloudflared
+pm2 save
+pm2 logs cloudflared --lines 30   # 找 https://xxx.trycloudflare.com
+```
+
+> Quick Tunnel 域名重启后会变，需同步更新 Vercel 环境变量。
+
+### 需要申请的 API Key
 
 | Key | 用途 | 申请地址 |
 |-----|------|----------|
