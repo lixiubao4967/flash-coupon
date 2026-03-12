@@ -132,6 +132,46 @@ GROK_SEARCH_AREAS=渋谷,新宿,梅田,博多,名古屋
 
 ---
 
+## 使用说明
+
+### 消费者
+
+1. **浏览优惠券** — 打开首页，实时显示周边活跃优惠券，按分类/地区 tab 筛选
+2. **订阅通知** — 点击「开启通知」，新优惠发布时浏览器会推送提醒（需授权）
+3. **领取优惠** — 点击券卡上的「领取」按钮，配额耗尽时按钮置灰不可用
+4. **安装到桌面** — Chrome / Safari（iOS 16.4+）访问首页 → 「添加到主屏幕」，支持离线访问
+
+### 商家 / 发布者
+
+**方式一：语音发布（推荐）**
+
+1. 进入 `/voice` 页面
+2. 点击录音按钮，说出优惠内容（如「今天拉面半价，限 20 份，有效 2 小时」）
+3. AI 自动解析为结构化字段，确认后一键发布
+4. 发布成功后可通过 Web Share 分享到微信 / LINE / Twitter
+
+**方式二：表单发布**
+
+1. 进入 `/merchant` 页面
+2. 填写店铺名、优惠项目、折扣、有效时长、配额等字段
+3. 点击发布，订阅用户立即收到通知
+
+---
+
+## API 费用说明
+
+| 操作 | 消耗 | 说明 |
+|------|------|------|
+| 语音发布（每次） | Anthropic Token（Claude Haiku） | 约 200 token/次，≈ $0.00005，可忽略不计 |
+| Hot Pepper 自动抓取 | 无 Token 消耗 | 直接调用 Hot Pepper REST API |
+| Grok 抓取 X 帖子（每15分钟） | xAI Token（`GROK_API_KEY`） | 用量取决于 `GROK_SEARCH_AREAS` 配置的地区数量 |
+| 浏览 / 领取 / 通知推送 | 无 Token 消耗 | — |
+
+> **只有语音发布才会消耗 Anthropic Token。** 手动表单发布、Hot Pepper 抓取、用户浏览和领取均不调用 AI 接口。
+> 日常使用下 Anthropic 费用极低，Haiku 定价约 $0.25 / 百万 input token。
+
+---
+
 ## 数据来源
 
 | 来源 | 标签 | 触发方式 | 有效时长 |
@@ -218,8 +258,3 @@ pm2 logs cloudflared --lines 30   # 找 https://xxx.trycloudflare.com
 | `HOTPEPPER_API_KEY` | Hot Pepper 抓取（可选） | webservice.recruit.co.jp/register |
 | `GROK_API_KEY` | X 社交优惠发现（可选） | console.x.ai |
 
----
-
-## PWA 安装
-
-Chrome / Safari（iOS 16.4+）访问首页 → 点击「添加到主屏幕」→ 独立模式运行，支持离线访问。
