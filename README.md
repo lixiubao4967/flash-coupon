@@ -250,6 +250,23 @@ pm2 logs cloudflared --lines 30   # 找 https://xxx.trycloudflare.com
 
 > Quick Tunnel 域名重启后会变，需同步更新 Vercel 环境变量。
 
+#### EC2 重启后恢复步骤
+
+```bash
+# 1. 恢复 PM2 进程（后端 + cloudflared 同时拉起）
+pm2 resurrect
+
+# 2. 查看新的 Cloudflare Tunnel 域名
+pm2 logs cloudflared --lines 30
+# 找形如 https://xxxx-xxxx.trycloudflare.com 的行
+```
+
+**3. 更新 Vercel 环境变量**（只需改这一项，Vercel 会自动重新部署）：
+- Vercel → 项目 → Settings → Environment Variables
+- 将 `NEXT_PUBLIC_BACKEND_URL` 改为新的 `https://xxxx.trycloudflare.com` 地址
+
+> 如需彻底避免每次重启改域名，可升级为 Cloudflare Named Tunnel（固定域名，免费，需注册 Cloudflare 账号）。
+
 ### 需要申请的 API Key
 
 | Key | 用途 | 申请地址 |
