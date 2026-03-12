@@ -266,6 +266,8 @@ pm2 logs cloudflared --lines 30
 - 将 `NEXT_PUBLIC_BACKEND_URL` 改为新的 `https://xxxx.trycloudflare.com` 地址
 
 > 如需彻底避免每次重启改域名，可升级为 Cloudflare Named Tunnel（固定域名，免费，需注册 Cloudflare 账号）。
+>
+> Redis 如异常可用 `sudo systemctl start redis-server` 手动拉起。
 
 ### 需要申请的 API Key
 
