@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Coupon, CouponSource } from '@/lib/types';
 
-const SOURCE_CONFIG: Record<CouponSource, { label: string; bg: string; text: string }> = {
-  manual:    { label: '商家发布', bg: 'bg-orange-100', text: 'text-orange-700' },
-  hotpepper: { label: 'Hot Pepper', bg: 'bg-red-100', text: 'text-red-700' },
-  social:    { label: '来自 X',    bg: 'bg-sky-100',  text: 'text-sky-700'  },
+const SOURCE_CONFIG: Record<CouponSource, { label: string; bg: string; text: string; dot: string }> = {
+  manual:    { label: '商家发布', bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-400' },
+  hotpepper: { label: 'Hot Pepper', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-400' },
+  social:    { label: '来自 X',    bg: 'bg-sky-100',  text: 'text-sky-700',  dot: 'bg-sky-400'  },
 };
 
 interface CouponCardProps {
@@ -25,7 +25,7 @@ function formatCountdown(ms: number): { text: string; urgent: boolean } {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
     return {
-      text: `${hours}小时${mins > 0 ? mins + '分钟' : ''}`,
+      text: `${hours}h ${mins > 0 ? mins + 'm' : ''}`,
       urgent: false,
     };
   }
@@ -104,76 +104,119 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
     }
   }
 
+  const sourceConf = coupon.source && SOURCE_CONFIG[coupon.source] ? SOURCE_CONFIG[coupon.source] : null;
+
   return (
     <div
       className={[
-        'rounded-2xl shadow-md border overflow-hidden transition-all duration-500',
-        isNew ? 'ring-2 ring-orange-400 animate-pulse-fast' : '',
+        'relative rounded-2xl border overflow-hidden card-lift',
+        isNew
+          ? 'ring-2 ring-orange-400 ring-offset-1 animate-slide-up shadow-brand'
+          : 'shadow-card hover:shadow-card-hover',
         isExpired ? 'opacity-50 grayscale' : 'bg-white',
       ].join(' ')}
     >
-      {/* 顶部色块 */}
+      {/* NEW 标签 */}
+      {isNew && !isExpired && (
+        <div className="absolute top-3 right-3 z-10 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full shadow-sm animate-bounce-in">
+          NEW
+        </div>
+      )}
+
+      {/* 顶部渐变色块 */}
       <div
         className={[
-          'px-4 py-3 flex items-center justify-between',
-          isExpired ? 'bg-gray-400' : 'bg-gradient-to-r from-orange-500 to-red-500',
+          'px-4 pt-4 pb-5 relative overflow-hidden',
+          isExpired
+            ? 'bg-gray-400'
+            : 'bg-gradient-to-br from-orange-500 via-orange-500 to-red-500',
         ].join(' ')}
       >
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-white font-bold text-lg leading-tight">
-              {coupon.shopName}
-            </p>
-            {coupon.source && SOURCE_CONFIG[coupon.source] && (
-              <span
-                className={`text-xs font-semibold px-1.5 py-0.5 rounded-full ${SOURCE_CONFIG[coupon.source].bg} ${SOURCE_CONFIG[coupon.source].text}`}
-              >
-                {SOURCE_CONFIG[coupon.source].label}
-              </span>
-            )}
-          </div>
-          <p className="text-orange-100 text-sm">{coupon.item}</p>
-        </div>
-        <div className="text-right ml-2">
-          <p className="text-white text-3xl font-black">{coupon.discount}</p>
-          <p className="text-orange-100 text-xs">折扣</p>
-        </div>
-      </div>
-
-      {/* 主体 */}
-      <div className="px-4 py-3 space-y-3">
-        {coupon.description && (
-          <p className="text-gray-600 text-sm">{coupon.description}</p>
+        {/* 背景装饰圆 */}
+        {!isExpired && (
+          <>
+            <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10" />
+            <div className="absolute -right-2 top-8 w-16 h-16 rounded-full bg-white/5" />
+          </>
         )}
 
-        {/* 倒计时 */}
-        <div className="flex items-center justify-between">
-          <span className="text-gray-500 text-xs">剩余时间</span>
-          <span
+        <div className="relative flex items-start justify-between gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap mb-0.5">
+              <p className="text-white font-bold text-lg leading-tight drop-shadow-sm">
+                {coupon.shopName}
+              </p>
+              {sourceConf && (
+                <span
+                  className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sourceConf.bg} ${sourceConf.text}`}
+                >
+                  <span className={`w-1.5 h-1.5 rounded-full ${sourceConf.dot}`} />
+                  {sourceConf.label}
+                </span>
+              )}
+            </div>
+            <p className="text-orange-100 text-sm font-medium">{coupon.item}</p>
+          </div>
+
+          {/* 折扣大字 */}
+          <div className="text-right shrink-0">
+            <p className="text-white text-4xl font-black leading-none drop-shadow-sm">
+              {coupon.discount}
+            </p>
+            <p className="text-orange-200 text-xs mt-0.5 font-medium">折扣</p>
+          </div>
+        </div>
+
+        {/* 倒计时 + 名额摘要 — 悬浮在 header 底部 */}
+        <div className="absolute -bottom-4 left-4 right-4 flex gap-2">
+          <div
             className={[
-              'font-mono font-bold text-base tabular-nums',
+              'flex items-center gap-1.5 bg-white rounded-full px-3 py-1 shadow-sm text-sm font-bold tabular-nums',
               isExpired
                 ? 'text-gray-400'
                 : countdown.urgent
-                ? 'text-red-500 animate-pulse'
-                : 'text-orange-500',
+                ? 'text-red-500 animate-pulse-fast'
+                : 'text-orange-600',
             ].join(' ')}
           >
+            <span className="text-xs">⏱</span>
             {countdown.text}
-          </span>
-        </div>
-
-        {/* 使用进度 */}
-        <div className="space-y-1">
-          <div className="flex justify-between text-xs text-gray-400">
-            <span>已领取 {coupon.usedCount} / {coupon.totalQuota}</span>
-            <span>{quotaPercent}%</span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-2">
+          <div className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1 shadow-sm text-sm text-gray-600 font-medium">
+            <span className="text-xs">👥</span>
+            {coupon.usedCount}/{coupon.totalQuota}
+          </div>
+          {coupon.area && (
+            <div className="flex items-center gap-1 bg-white rounded-full px-3 py-1 shadow-sm text-xs text-gray-500 font-medium">
+              📍 {coupon.area}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 主体 — 留出 header 下沉区域的空间 */}
+      <div className="px-4 pt-7 pb-4 space-y-3">
+        {coupon.description && (
+          <p className="text-gray-600 text-sm leading-relaxed">{coupon.description}</p>
+        )}
+
+        {/* 使用进度条 */}
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs">
+            <span className="text-gray-400">
+              已领 <span className="font-semibold text-gray-600">{coupon.usedCount}</span> / {coupon.totalQuota}
+            </span>
+            <span className={quotaPercent >= 80 ? 'text-red-500 font-semibold' : 'text-gray-400'}>
+              {quotaPercent}%
+            </span>
+          </div>
+          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
             <div
               className={[
-                'h-2 rounded-full transition-all duration-300',
-                quotaPercent >= 80 ? 'bg-red-400' : 'bg-orange-400',
+                'h-2 rounded-full transition-all duration-500',
+                quotaPercent >= 80
+                  ? 'bg-gradient-to-r from-red-400 to-red-500'
+                  : 'bg-gradient-to-r from-orange-400 to-orange-500',
               ].join(' ')}
               style={{ width: `${quotaPercent}%` }}
             />
@@ -181,19 +224,19 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
         </div>
 
         {/* 领取 + 分享 */}
-        <div className="flex gap-2">
+        <div className="flex gap-2 pt-0.5">
           <button
             onClick={handleClaim}
             disabled={isExpired || isSoldOut || claimed || claiming}
             className={[
-              'flex-1 py-2.5 rounded-xl font-semibold text-sm transition-all duration-200',
+              'flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-200',
               claimed
-                ? 'bg-green-500 text-white cursor-default'
+                ? 'bg-green-500 text-white cursor-default shadow-sm'
                 : isSoldOut || isExpired
-                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : claiming
                 ? 'bg-orange-300 text-white cursor-wait'
-                : 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white shadow-sm',
+                : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 active:scale-95 text-white shadow-brand hover:shadow-brand-lg',
             ].join(' ')}
           >
             {claimed
@@ -203,13 +246,13 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
               : isExpired
               ? '已过期'
               : claiming
-              ? '领取中...'
+              ? '领取中…'
               : '立即领取'}
           </button>
           {!isExpired && (
             <button
               onClick={handleShare}
-              className="px-3 py-2.5 rounded-xl text-sm border border-gray-200 hover:border-orange-300 text-gray-500 hover:text-orange-500 transition-all active:scale-95"
+              className="px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-500 hover:text-orange-500 active:scale-95"
               title="分享"
             >
               {shareCopied ? '✓' : '📤'}
@@ -217,39 +260,32 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
           )}
         </div>
 
-        {/* 区域 / 分类 */}
-        {(coupon.area || coupon.category) && (
-          <div className="flex gap-3 text-xs text-gray-400">
-            {coupon.area && <span>📍 {coupon.area}</span>}
-            {coupon.category && <span>🍽 {coupon.category}</span>}
+        {/* 分类 + 外链 */}
+        <div className="flex items-center justify-between pt-0.5">
+          <div className="flex gap-2">
+            {coupon.category && (
+              <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                🍽 {coupon.category}
+              </span>
+            )}
           </div>
-        )}
+          {coupon.originalUrl && !claimed && (
+            <a
+              href={coupon.originalUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-400 hover:text-blue-600 transition-colors"
+            >
+              查看原页面 →
+            </a>
+          )}
+        </div>
 
-        {/* 外链（Hot Pepper / X 帖子） */}
-        {coupon.originalUrl && !claimed && (
-          <a
-            href={coupon.originalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block text-center text-xs text-blue-500 hover:text-blue-600 underline"
-          >
-            查看原始页面 →
-          </a>
-        )}
-
-        {/* 地理信息 */}
-        <p className="text-xs text-gray-400 text-center">
-          有效范围 {coupon.radiusKm} km · 坐标 ({coupon.location.lat.toFixed(4)},{' '}
-          {coupon.location.lng.toFixed(4)})
+        {/* 地理范围 */}
+        <p className="text-xs text-gray-300 text-center pt-0.5">
+          有效 {coupon.radiusKm} km · {coupon.location.lat.toFixed(4)}, {coupon.location.lng.toFixed(4)}
         </p>
       </div>
-
-      {/* NEW 标签 */}
-      {isNew && !isExpired && (
-        <div className="absolute top-2 left-2 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full shadow">
-          NEW
-        </div>
-      )}
     </div>
   );
 }

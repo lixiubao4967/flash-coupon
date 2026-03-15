@@ -53,7 +53,6 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
     setStatus('submitting');
     setErrorMsg('');
 
-    // 尝试获取当前位置
     let lat = parseFloat(form.lat);
     let lng = parseFloat(form.lng);
 
@@ -71,7 +70,7 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
               }));
               resolve();
             },
-            () => resolve(), // 拒绝或失败则用表单值
+            () => resolve(),
             { timeout: 3000 }
           );
         } else {
@@ -110,7 +109,6 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
       setStatus('success');
       onPublished?.(coupon);
 
-      // 3 秒后恢复表单
       setTimeout(() => setStatus('idle'), 3000);
     } catch (err) {
       setErrorMsg(err instanceof Error ? err.message : '发布失败，请重试');
@@ -119,149 +117,159 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
   }
 
   const inputClass =
-    'w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 transition';
-  const labelClass = 'block text-sm font-medium text-gray-700 mb-1';
+    'w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition bg-white hover:border-gray-300';
+  const labelClass = 'block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide';
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* 商家信息 */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>商家 ID</label>
-          <input
-            name="shopId"
-            value={form.shopId}
-            onChange={handleChange}
-            required
-            placeholder="shop-001"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>商家名称</label>
-          <input
-            name="shopName"
-            value={form.shopName}
-            onChange={handleChange}
-            required
-            placeholder="例：老李拉面"
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      {/* 商品 & 折扣 */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>优惠商品</label>
-          <input
-            name="item"
-            value={form.item}
-            onChange={handleChange}
-            required
-            placeholder="例：招牌拉面"
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>折扣力度</label>
-          <input
-            name="discount"
-            value={form.discount}
-            onChange={handleChange}
-            required
-            placeholder="例：50% / 买一送一"
-            className={inputClass}
-          />
-        </div>
-      </div>
-
-      {/* 描述 */}
       <div>
-        <label className={labelClass}>优惠说明（可选）</label>
-        <textarea
-          name="description"
-          value={form.description}
-          onChange={handleChange}
-          rows={2}
-          placeholder="例：每桌限用一张，不与其他优惠叠加"
-          className={inputClass + ' resize-none'}
-        />
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">商家信息</p>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>商家 ID</label>
+            <input
+              name="shopId"
+              value={form.shopId}
+              onChange={handleChange}
+              required
+              placeholder="shop-001"
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>商家名称</label>
+            <input
+              name="shopName"
+              value={form.shopName}
+              onChange={handleChange}
+              required
+              placeholder="例：老李拉面"
+              className={inputClass}
+            />
+          </div>
+        </div>
       </div>
 
-      {/* 有效时长 & 名额 */}
-      <div className="grid grid-cols-2 gap-3">
-        <div>
-          <label className={labelClass}>有效时长（分钟）</label>
-          <select
-            name="durationMinutes"
-            value={form.durationMinutes}
-            onChange={handleChange}
-            className={inputClass}
-          >
-            <option value="15">15 分钟</option>
-            <option value="30">30 分钟</option>
-            <option value="60">1 小时</option>
-            <option value="120">2 小时</option>
-            <option value="240">4 小时</option>
-            <option value="480">8 小时</option>
-          </select>
-        </div>
-        <div>
-          <label className={labelClass}>总名额</label>
-          <input
-            name="totalQuota"
-            type="number"
-            min={1}
-            max={9999}
-            value={form.totalQuota}
-            onChange={handleChange}
-            required
-            className={inputClass}
-          />
+      {/* 优惠内容 */}
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">优惠内容</p>
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>优惠商品</label>
+              <input
+                name="item"
+                value={form.item}
+                onChange={handleChange}
+                required
+                placeholder="例：招牌拉面"
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>折扣力度</label>
+              <input
+                name="discount"
+                value={form.discount}
+                onChange={handleChange}
+                required
+                placeholder="例：50% / 买一送一"
+                className={inputClass}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>优惠说明（可选）</label>
+            <textarea
+              name="description"
+              value={form.description}
+              onChange={handleChange}
+              rows={2}
+              placeholder="例：每桌限用一张，不与其他优惠叠加"
+              className={inputClass + ' resize-none'}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>有效时长</label>
+              <select
+                name="durationMinutes"
+                value={form.durationMinutes}
+                onChange={handleChange}
+                className={inputClass}
+              >
+                <option value="15">15 分钟</option>
+                <option value="30">30 分钟</option>
+                <option value="60">1 小时</option>
+                <option value="120">2 小时</option>
+                <option value="240">4 小时</option>
+                <option value="480">8 小时</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelClass}>总名额</label>
+              <input
+                name="totalQuota"
+                type="number"
+                min={1}
+                max={9999}
+                value={form.totalQuota}
+                onChange={handleChange}
+                required
+                className={inputClass}
+              />
+            </div>
+          </div>
         </div>
       </div>
 
       {/* 地理信息 */}
-      <div className="grid grid-cols-3 gap-3">
-        <div>
-          <label className={labelClass}>纬度</label>
-          <input
-            name="lat"
-            type="number"
-            step="any"
-            value={form.lat}
-            onChange={handleChange}
-            required
-            className={inputClass}
-          />
+      <div>
+        <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-3">地理范围</p>
+        <div className="grid grid-cols-3 gap-3">
+          <div>
+            <label className={labelClass}>纬度</label>
+            <input
+              name="lat"
+              type="number"
+              step="any"
+              value={form.lat}
+              onChange={handleChange}
+              required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>经度</label>
+            <input
+              name="lng"
+              type="number"
+              step="any"
+              value={form.lng}
+              onChange={handleChange}
+              required
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label className={labelClass}>半径 (km)</label>
+            <input
+              name="radiusKm"
+              type="number"
+              step="0.1"
+              min={0.1}
+              max={50}
+              value={form.radiusKm}
+              onChange={handleChange}
+              required
+              className={inputClass}
+            />
+          </div>
         </div>
-        <div>
-          <label className={labelClass}>经度</label>
-          <input
-            name="lng"
-            type="number"
-            step="any"
-            value={form.lng}
-            onChange={handleChange}
-            required
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className={labelClass}>覆盖半径(km)</label>
-          <input
-            name="radiusKm"
-            type="number"
-            step="0.1"
-            min={0.1}
-            max={50}
-            value={form.radiusKm}
-            onChange={handleChange}
-            required
-            className={inputClass}
-          />
-        </div>
+        <p className="text-xs text-gray-400 mt-2">📍 提交时自动尝试获取当前位置</p>
       </div>
 
       {/* 提交按钮 */}
@@ -269,25 +277,25 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
         type="submit"
         disabled={status === 'submitting' || status === 'success'}
         className={[
-          'w-full py-3 rounded-xl font-bold text-base transition-all duration-200',
+          'w-full py-3.5 rounded-2xl font-bold text-base transition-all duration-200',
           status === 'success'
-            ? 'bg-green-500 text-white cursor-default'
+            ? 'bg-green-500 text-white cursor-default shadow-sm'
             : status === 'submitting'
             ? 'bg-orange-300 text-white cursor-wait'
-            : 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white shadow-md',
+            : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 active:scale-95 text-white shadow-brand hover:shadow-brand-lg',
         ].join(' ')}
       >
         {status === 'success'
           ? '✓ 发布成功！已实时推送给消费者'
           : status === 'submitting'
-          ? '发布中...'
+          ? '发布中…'
           : '⚡ 立即发布优惠券'}
       </button>
 
       {/* 错误提示 */}
       {status === 'error' && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-600">
-          {errorMsg}
+        <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600 animate-slide-up">
+          ⚠️ {errorMsg}
         </div>
       )}
     </form>

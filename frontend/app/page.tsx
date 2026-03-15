@@ -18,8 +18,8 @@ export default function HomePage() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
+  const [showNewToast, setShowNewToast] = useState(false);
 
-  // 从后端加载现有活跃优惠券
   const fetchCoupons = useCallback(async () => {
     try {
       const res = await fetch(`${BACKEND_URL}/api/coupons`);
@@ -34,7 +34,6 @@ export default function HomePage() {
     }
   }, []);
 
-  // 添加新优惠券并短暂高亮
   const addNewCoupon = useCallback((coupon: Coupon) => {
     setCoupons((prev) => {
       const exists = prev.some((c) => c.id === coupon.id);
@@ -42,6 +41,7 @@ export default function HomePage() {
       return [coupon, ...prev];
     });
     setNewIds((prev) => new Set(prev).add(coupon.id));
+    setShowNewToast(true);
     setTimeout(() => {
       setNewIds((prev) => {
         const next = new Set(prev);
@@ -49,9 +49,9 @@ export default function HomePage() {
         return next;
       });
     }, 8000);
+    setTimeout(() => setShowNewToast(false), 4000);
   }, []);
 
-  // 处理 coupon-used 事件，更新 usedCount
   const handleCouponUsed = useCallback(
     ({ id, usedCount }: { id: string; usedCount: number }) => {
       setCoupons((prev) =>
@@ -71,7 +71,6 @@ export default function HomePage() {
     socket.on('new-coupon', addNewCoupon);
     socket.on('coupon-used', handleCouponUsed);
 
-    // 初始连接状态
     setConnected(socket.connected);
 
     return () => {
@@ -80,7 +79,6 @@ export default function HomePage() {
     };
   }, [fetchCoupons, addNewCoupon, handleCouponUsed]);
 
-  // 定时清理已过期的卡片（每 30 秒）
   useEffect(() => {
     const interval = setInterval(() => {
       const now = Date.now();
@@ -115,71 +113,91 @@ export default function HomePage() {
 
   return (
     <div className="space-y-5">
+      {/* 新优惠到达 Toast */}
+      {showNewToast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div className="flex items-center gap-2 bg-orange-500 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-brand-lg">
+            <span className="animate-pulse-fast">⚡</span>
+            有新优惠券到了！
+          </div>
+        </div>
+      )}
+
       {/* 状态栏 */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span
-            className={[
-              'w-2 h-2 rounded-full',
-              connected ? 'bg-green-400 animate-pulse' : 'bg-gray-300',
-            ].join(' ')}
-          />
+          <span className="relative flex h-2.5 w-2.5">
+            {connected && (
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            )}
+            <span
+              className={[
+                'relative inline-flex rounded-full h-2.5 w-2.5',
+                connected ? 'bg-green-400' : 'bg-gray-300',
+              ].join(' ')}
+            />
+          </span>
           <span className="text-sm text-gray-500">
             {connected ? '实时连接中' : '连接断开'}
           </span>
         </div>
 
-        {!pushEnabled && (
+        {!pushEnabled ? (
           <button
             onClick={handleEnablePush}
-            className="text-xs bg-orange-100 text-orange-600 font-medium px-3 py-1.5 rounded-full hover:bg-orange-200 transition"
+            className="text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 font-semibold px-3 py-1.5 rounded-full border border-orange-200 transition-all"
           >
-            🔔 开启推送通知
+            🔔 开启推送
           </button>
-        )}
-        {pushEnabled && (
-          <span className="text-xs text-green-600 font-medium">
-            ✓ 推送已开启
+        ) : (
+          <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
+            推送已开启
           </span>
         )}
       </div>
 
       {/* 页面标题 */}
       <div>
-        <h1 className="text-2xl font-bold text-gray-800">附近限时优惠</h1>
-        <p className="text-sm text-gray-500 mt-1">
+        <h1 className="text-2xl font-black text-gradient-brand">附近限时优惠</h1>
+        <p className="text-sm text-gray-400 mt-1">
           实时发现周边商家发布的短时效优惠券
+          {activeCoupons.length > 0 && (
+            <span className="ml-1.5 text-orange-500 font-semibold">{activeCoupons.length} 张可用</span>
+          )}
         </p>
       </div>
 
       {/* 分类筛选 */}
       {allCategories.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
-          <button
-            onClick={() => setSelectedCategory('')}
-            className={[
-              'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
-              !selectedCategory
-                ? 'bg-orange-500 text-white border-orange-500'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300',
-            ].join(' ')}
-          >
-            全分类
-          </button>
-          {allCategories.map((cat) => (
+        <div className="relative">
+          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
+              onClick={() => setSelectedCategory('')}
               className={[
-                'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
-                selectedCategory === cat
-                  ? 'bg-orange-500 text-white border-orange-500'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300',
+                'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
+                !selectedCategory
+                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-orange-500',
               ].join(' ')}
             >
-              {cat}
+              全分类
             </button>
-          ))}
+            {allCategories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
+                className={[
+                  'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
+                  selectedCategory === cat
+                    ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-orange-500',
+                ].join(' ')}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
@@ -189,10 +207,10 @@ export default function HomePage() {
           <button
             onClick={() => setSelectedArea('')}
             className={[
-              'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
+              'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
               !selectedArea
-                ? 'bg-blue-500 text-white border-blue-500'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300',
+                ? 'bg-blue-500 text-white border-blue-500 shadow-sm'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-500',
             ].join(' ')}
           >
             全地区
@@ -202,10 +220,10 @@ export default function HomePage() {
               key={area}
               onClick={() => setSelectedArea(area === selectedArea ? '' : area)}
               className={[
-                'shrink-0 text-xs px-3 py-1.5 rounded-full border transition',
+                'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
                 selectedArea === area
-                  ? 'bg-blue-500 text-white border-blue-500'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300',
+                  ? 'bg-blue-500 text-white border-blue-500 shadow-sm'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-500',
               ].join(' ')}
             >
               {area}
@@ -216,18 +234,27 @@ export default function HomePage() {
 
       {/* 内容区域 */}
       {loading && (
-        <div className="text-center py-16">
-          <div className="inline-block w-8 h-8 border-4 border-orange-400 border-t-transparent rounded-full animate-spin" />
-          <p className="text-gray-400 mt-3 text-sm">加载中...</p>
+        <div className="space-y-4 pt-2">
+          {[1, 2].map((i) => (
+            <div key={i} className="rounded-2xl border bg-white shadow-card overflow-hidden animate-pulse">
+              <div className="h-24 bg-gradient-to-br from-orange-100 to-red-100" />
+              <div className="p-4 space-y-3">
+                <div className="h-3 bg-gray-100 rounded-full w-3/4" />
+                <div className="h-2 bg-gray-100 rounded-full" />
+                <div className="h-10 bg-gray-100 rounded-xl" />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {!loading && error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-center">
-          <p className="text-red-600 text-sm">{error}</p>
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center animate-fade-in">
+          <p className="text-2xl mb-2">⚠️</p>
+          <p className="text-red-600 text-sm font-medium">{error}</p>
           <button
             onClick={fetchCoupons}
-            className="mt-2 text-xs text-red-500 underline"
+            className="mt-3 text-xs text-red-500 hover:text-red-700 underline font-medium"
           >
             重新加载
           </button>
@@ -235,30 +262,33 @@ export default function HomePage() {
       )}
 
       {!loading && !error && activeCoupons.length === 0 && (
-        <div className="text-center py-20">
-          <p className="text-5xl mb-4">🍜</p>
-          <p className="text-gray-400 text-base">暂无活跃优惠券</p>
-          <p className="text-gray-300 text-sm mt-1">
+        <div className="text-center py-20 animate-fade-in">
+          <div className="text-6xl mb-4 animate-bounce">🍜</div>
+          <p className="text-gray-500 text-base font-medium">暂无活跃优惠券</p>
+          <p className="text-gray-300 text-sm mt-1.5">
             商家发布优惠后将实时出现在这里
           </p>
-          <a
-            href="/merchant"
-            className="inline-block mt-4 text-sm text-orange-500 hover:text-orange-600 font-medium underline"
-          >
-            我是商家，去发布优惠
-          </a>
+          <div className="flex justify-center gap-3 mt-5">
+            <a
+              href="/voice"
+              className="inline-flex items-center gap-1.5 text-sm bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold px-4 py-2 rounded-full shadow-brand hover:shadow-brand-lg transition-all active:scale-95"
+            >
+              🎤 语音发布
+            </a>
+            <a
+              href="/merchant"
+              className="inline-flex items-center gap-1.5 text-sm bg-white text-orange-600 font-semibold px-4 py-2 rounded-full border border-orange-200 hover:border-orange-400 transition-all"
+            >
+              商家发布
+            </a>
+          </div>
         </div>
       )}
 
       {!loading && activeCoupons.length > 0 && (
-        <div className="space-y-4 relative">
-          {newIds.size > 0 && (
-            <div className="bg-orange-50 border border-orange-200 rounded-xl px-4 py-2 text-sm text-orange-600 font-medium animate-pulse">
-              ⚡ 有新优惠券！
-            </div>
-          )}
+        <div className="space-y-4">
           {activeCoupons.map((coupon) => (
-            <div key={coupon.id} className="relative">
+            <div key={coupon.id}>
               <CouponCard coupon={coupon} isNew={newIds.has(coupon.id)} />
             </div>
           ))}
