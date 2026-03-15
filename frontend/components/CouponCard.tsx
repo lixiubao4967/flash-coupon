@@ -3,10 +3,10 @@
 import { useEffect, useState } from 'react';
 import { Coupon, CouponSource } from '@/lib/types';
 
-const SOURCE_CONFIG: Record<CouponSource, { label: string; bg: string; text: string; dot: string }> = {
-  manual:    { label: '商家发布', bg: 'bg-orange-100', text: 'text-orange-700', dot: 'bg-orange-400' },
-  hotpepper: { label: 'Hot Pepper', bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-400' },
-  social:    { label: '来自 X',    bg: 'bg-sky-100',  text: 'text-sky-700',  dot: 'bg-sky-400'  },
+const SOURCE_CONFIG: Record<CouponSource, { label: string; stripe: string; badge: string; text: string }> = {
+  manual:    { label: '商家发布', stripe: 'bg-orange-400',  badge: 'bg-orange-50 text-orange-600',  text: 'text-orange-600' },
+  hotpepper: { label: 'Hot Pepper', stripe: 'bg-red-400',  badge: 'bg-red-50 text-red-600',       text: 'text-red-600'    },
+  social:    { label: '来自 X',    stripe: 'bg-sky-400',   badge: 'bg-sky-50 text-sky-600',        text: 'text-sky-600'   },
 };
 
 interface CouponCardProps {
@@ -105,118 +105,107 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
   }
 
   const sourceConf = coupon.source && SOURCE_CONFIG[coupon.source] ? SOURCE_CONFIG[coupon.source] : null;
+  const stripeColor = sourceConf?.stripe ?? 'bg-gray-300';
 
   return (
     <div
       className={[
-        'relative rounded-2xl border overflow-hidden card-lift',
+        'relative rounded-2xl bg-white overflow-hidden card-lift flex',
         isNew
-          ? 'ring-2 ring-orange-400 ring-offset-1 animate-slide-up shadow-brand'
+          ? 'ring-2 ring-indigo-400 ring-offset-1 animate-slide-up shadow-brand'
           : 'shadow-card hover:shadow-card-hover',
-        isExpired ? 'opacity-50 grayscale' : 'bg-white',
+        isExpired ? 'opacity-50 grayscale' : '',
       ].join(' ')}
     >
+      {/* 左侧色条 */}
+      <div className={`w-1 shrink-0 ${stripeColor}`} />
+
       {/* NEW 标签 */}
       {isNew && !isExpired && (
-        <div className="absolute top-3 right-3 z-10 bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-0.5 rounded-full shadow-sm animate-bounce-in">
+        <div className="absolute top-3 right-3 z-10 bg-indigo-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-bounce-in">
           NEW
         </div>
       )}
 
-      {/* 顶部渐变色块 */}
-      <div
-        className={[
-          'px-4 pt-4 pb-5 relative overflow-hidden',
-          isExpired
-            ? 'bg-gray-400'
-            : 'bg-gradient-to-br from-orange-500 via-orange-500 to-red-500',
-        ].join(' ')}
-      >
-        {/* 背景装饰圆 */}
-        {!isExpired && (
-          <>
-            <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-white/10" />
-            <div className="absolute -right-2 top-8 w-16 h-16 rounded-full bg-white/5" />
-          </>
-        )}
-
-        <div className="relative flex items-start justify-between gap-3">
+      {/* 卡片主体 */}
+      <div className="flex-1 px-4 py-4 space-y-3">
+        {/* 顶部：店名 + 折扣 */}
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap mb-0.5">
-              <p className="text-white font-bold text-lg leading-tight drop-shadow-sm">
-                {coupon.shopName}
-              </p>
-              {sourceConf && (
-                <span
-                  className={`inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full ${sourceConf.bg} ${sourceConf.text}`}
-                >
-                  <span className={`w-1.5 h-1.5 rounded-full ${sourceConf.dot}`} />
-                  {sourceConf.label}
-                </span>
-              )}
-            </div>
-            <p className="text-orange-100 text-sm font-medium">{coupon.item}</p>
+            {/* 来源标签 */}
+            {sourceConf && (
+              <span className={`inline-flex items-center text-xs font-medium px-2 py-0.5 rounded-full mb-1.5 ${sourceConf.badge}`}>
+                {sourceConf.label}
+              </span>
+            )}
+            <p className="text-gray-900 font-bold text-base leading-tight">{coupon.shopName}</p>
+            <p className="text-gray-500 text-sm mt-0.5">{coupon.item}</p>
           </div>
 
           {/* 折扣大字 */}
-          <div className="text-right shrink-0">
-            <p className="text-white text-4xl font-black leading-none drop-shadow-sm">
-              {coupon.discount}
-            </p>
-            <p className="text-orange-200 text-xs mt-0.5 font-medium">折扣</p>
+          <div className="shrink-0 text-right">
+            <p className="text-3xl font-black text-gray-900 leading-none">{coupon.discount}</p>
+            <p className="text-xs text-gray-400 mt-0.5">折扣</p>
           </div>
         </div>
 
-        {/* 倒计时 + 名额摘要 — 悬浮在 header 底部 */}
-        <div className="absolute -bottom-4 left-4 right-4 flex gap-2">
-          <div
+        {/* 标签行：倒计时 + 名额 + 地区 */}
+        <div className="flex flex-wrap gap-1.5">
+          <span
             className={[
-              'flex items-center gap-1.5 bg-white rounded-full px-3 py-1 shadow-sm text-sm font-bold tabular-nums',
+              'inline-flex items-center gap-1 text-xs font-semibold tabular-nums px-2.5 py-1 rounded-lg',
               isExpired
-                ? 'text-gray-400'
+                ? 'bg-gray-100 text-gray-400'
                 : countdown.urgent
-                ? 'text-red-500 animate-pulse-fast'
-                : 'text-orange-600',
+                ? 'bg-red-50 text-red-500 animate-pulse-fast'
+                : 'bg-indigo-50 text-indigo-600',
             ].join(' ')}
           >
-            <span className="text-xs">⏱</span>
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <circle cx="12" cy="12" r="10" /><path strokeLinecap="round" d="M12 6v6l4 2" />
+            </svg>
             {countdown.text}
-          </div>
-          <div className="flex items-center gap-1.5 bg-white rounded-full px-3 py-1 shadow-sm text-sm text-gray-600 font-medium">
-            <span className="text-xs">👥</span>
+          </span>
+          <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0" />
+            </svg>
             {coupon.usedCount}/{coupon.totalQuota}
-          </div>
+          </span>
           {coupon.area && (
-            <div className="flex items-center gap-1 bg-white rounded-full px-3 py-1 shadow-sm text-xs text-gray-500 font-medium">
-              📍 {coupon.area}
-            </div>
+            <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+              <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {coupon.area}
+            </span>
+          )}
+          {coupon.category && (
+            <span className="inline-flex items-center text-xs text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg">
+              {coupon.category}
+            </span>
           )}
         </div>
-      </div>
 
-      {/* 主体 — 留出 header 下沉区域的空间 */}
-      <div className="px-4 pt-7 pb-4 space-y-3">
         {coupon.description && (
-          <p className="text-gray-600 text-sm leading-relaxed">{coupon.description}</p>
+          <p className="text-gray-500 text-sm leading-relaxed">{coupon.description}</p>
         )}
 
         {/* 使用进度条 */}
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           <div className="flex justify-between text-xs">
             <span className="text-gray-400">
-              已领 <span className="font-semibold text-gray-600">{coupon.usedCount}</span> / {coupon.totalQuota}
+              已领 <span className="font-medium text-gray-600">{coupon.usedCount}</span> / {coupon.totalQuota}
             </span>
-            <span className={quotaPercent >= 80 ? 'text-red-500 font-semibold' : 'text-gray-400'}>
+            <span className={quotaPercent >= 80 ? 'text-red-500 font-medium' : 'text-gray-400'}>
               {quotaPercent}%
             </span>
           </div>
-          <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
             <div
               className={[
-                'h-2 rounded-full transition-all duration-500',
-                quotaPercent >= 80
-                  ? 'bg-gradient-to-r from-red-400 to-red-500'
-                  : 'bg-gradient-to-r from-orange-400 to-orange-500',
+                'h-1.5 rounded-full transition-all duration-500',
+                quotaPercent >= 80 ? 'bg-red-400' : 'bg-indigo-400',
               ].join(' ')}
               style={{ width: `${quotaPercent}%` }}
             />
@@ -231,12 +220,12 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
             className={[
               'flex-1 py-2.5 rounded-xl font-bold text-sm transition-all duration-200',
               claimed
-                ? 'bg-green-500 text-white cursor-default shadow-sm'
+                ? 'bg-green-500 text-white cursor-default'
                 : isSoldOut || isExpired
                 ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                 : claiming
-                ? 'bg-orange-300 text-white cursor-wait'
-                : 'bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 active:scale-95 text-white shadow-brand hover:shadow-brand-lg',
+                ? 'bg-indigo-300 text-white cursor-wait'
+                : 'bg-orange-500 hover:bg-orange-600 active:scale-95 text-white',
             ].join(' ')}
           >
             {claimed
@@ -252,39 +241,38 @@ export default function CouponCard({ coupon, isNew = false }: CouponCardProps) {
           {!isExpired && (
             <button
               onClick={handleShare}
-              className="px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 hover:border-orange-300 hover:bg-orange-50 text-gray-500 hover:text-orange-500 active:scale-95"
+              className="px-3.5 py-2.5 rounded-xl text-sm border border-gray-200 hover:border-gray-300 text-gray-400 hover:text-gray-600 active:scale-95 transition-all"
               title="分享"
             >
-              {shareCopied ? '✓' : '📤'}
+              {shareCopied ? (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              ) : (
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+              )}
             </button>
           )}
         </div>
 
-        {/* 分类 + 外链 */}
+        {/* 外链 + 地理范围 */}
         <div className="flex items-center justify-between pt-0.5">
-          <div className="flex gap-2">
-            {coupon.category && (
-              <span className="inline-flex items-center gap-1 text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-                🍽 {coupon.category}
-              </span>
-            )}
-          </div>
-          {coupon.originalUrl && !claimed && (
+          {coupon.originalUrl && !claimed ? (
             <a
               href={coupon.originalUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-400 hover:text-blue-600 transition-colors"
+              className="text-xs text-indigo-400 hover:text-indigo-600 transition-colors"
             >
               查看原页面 →
             </a>
-          )}
+          ) : <span />}
+          <p className="text-xs text-gray-300">
+            {coupon.radiusKm} km · {coupon.location.lat.toFixed(4)}, {coupon.location.lng.toFixed(4)}
+          </p>
         </div>
-
-        {/* 地理范围 */}
-        <p className="text-xs text-gray-300 text-center pt-0.5">
-          有效 {coupon.radiusKm} km · {coupon.location.lat.toFixed(4)}, {coupon.location.lng.toFixed(4)}
-        </p>
       </div>
     </div>
   );

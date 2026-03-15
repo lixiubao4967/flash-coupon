@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#f97316',
+  themeColor: '#6366f1',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -38,31 +38,31 @@ export default function RootLayout({
       </head>
       <body>
         <div className="min-h-screen flex flex-col">
-          {/* Header with glassmorphism on scroll */}
-          <header className="sticky top-0 z-50 bg-gradient-to-r from-orange-500 to-red-500 shadow-brand">
-            <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* Header */}
+          <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+            <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
               <a href="/" className="flex items-center gap-1.5 group">
-                <span className="text-xl leading-none">⚡</span>
-                <span className="text-white font-bold text-lg tracking-tight group-hover:opacity-90 transition-opacity">
+                <span className="text-base leading-none">⚡</span>
+                <span className="text-gray-900 font-bold text-base tracking-tight group-hover:text-indigo-600 transition-colors">
                   闪购优惠券
                 </span>
               </a>
-              <nav className="flex items-center gap-1">
+              <nav className="flex items-center gap-0.5">
                 <a
                   href="/"
-                  className="text-sm font-medium text-white/80 hover:text-white hover:bg-white/15 px-3 py-1.5 rounded-full transition-all"
+                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
                 >
                   发现优惠
                 </a>
                 <a
                   href="/voice"
-                  className="flex items-center gap-1 text-sm font-medium bg-white/20 hover:bg-white/30 text-white px-3 py-1.5 rounded-full transition-all"
+                  className="flex items-center gap-1 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-all"
                 >
-                  🎤 语音发布
+                  🎤 语音
                 </a>
                 <a
                   href="/merchant"
-                  className="text-sm font-medium text-white/80 hover:text-white hover:bg-white/15 px-3 py-1.5 rounded-full transition-all"
+                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
                 >
                   商家
                 </a>
@@ -75,7 +75,7 @@ export default function RootLayout({
           </main>
 
           <footer className="text-center text-xs text-gray-400 py-5 border-t border-gray-100">
-            <span className="text-orange-400 font-medium">⚡ Flash Coupon</span>
+            <span className="text-indigo-400 font-medium">⚡ Flash Coupon</span>
             <span className="mx-2 text-gray-300">·</span>
             <span>&copy; {new Date().getFullYear()}</span>
           </footer>

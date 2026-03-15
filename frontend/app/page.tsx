@@ -115,8 +115,8 @@ export default function HomePage() {
     <div className="space-y-5">
       {/* 新优惠到达 Toast */}
       {showNewToast && (
-        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
-          <div className="flex items-center gap-2 bg-orange-500 text-white text-sm font-semibold px-4 py-2.5 rounded-full shadow-brand-lg">
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
+          <div className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-full shadow-brand">
             <span className="animate-pulse-fast">⚡</span>
             有新优惠券到了！
           </div>
@@ -145,7 +145,7 @@ export default function HomePage() {
         {!pushEnabled ? (
           <button
             onClick={handleEnablePush}
-            className="text-xs bg-orange-50 hover:bg-orange-100 text-orange-600 font-semibold px-3 py-1.5 rounded-full border border-orange-200 transition-all"
+            className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold px-3 py-1.5 rounded-lg border border-indigo-100 transition-all"
           >
             🔔 开启推送
           </button>
@@ -159,11 +159,11 @@ export default function HomePage() {
 
       {/* 页面标题 */}
       <div>
-        <h1 className="text-2xl font-black text-gradient-brand">附近限时优惠</h1>
+        <h1 className="text-2xl font-black text-gray-900">附近限时优惠</h1>
         <p className="text-sm text-gray-400 mt-1">
           实时发现周边商家发布的短时效优惠券
           {activeCoupons.length > 0 && (
-            <span className="ml-1.5 text-orange-500 font-semibold">{activeCoupons.length} 张可用</span>
+            <span className="ml-1.5 text-indigo-500 font-semibold">{activeCoupons.length} 张可用</span>
           )}
         </p>
       </div>
@@ -175,10 +175,10 @@ export default function HomePage() {
             <button
               onClick={() => setSelectedCategory('')}
               className={[
-                'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
+                'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
                 !selectedCategory
-                  ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-orange-500',
+                  ? 'bg-indigo-600 text-white border-indigo-600'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600',
               ].join(' ')}
             >
               全分类
@@ -188,10 +188,10 @@ export default function HomePage() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
                 className={[
-                  'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
+                  'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
                   selectedCategory === cat
-                    ? 'bg-orange-500 text-white border-orange-500 shadow-sm'
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-orange-300 hover:text-orange-500',
+                    ? 'bg-indigo-600 text-white border-indigo-600'
+                    : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600',
                 ].join(' ')}
               >
                 {cat}
@@ -207,10 +207,10 @@ export default function HomePage() {
           <button
             onClick={() => setSelectedArea('')}
             className={[
-              'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
+              'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
               !selectedArea
-                ? 'bg-blue-500 text-white border-blue-500 shadow-sm'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-500',
+                ? 'bg-violet-600 text-white border-violet-600'
+                : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300 hover:text-violet-600',
             ].join(' ')}
           >
             全地区
@@ -220,10 +220,10 @@ export default function HomePage() {
               key={area}
               onClick={() => setSelectedArea(area === selectedArea ? '' : area)}
               className={[
-                'shrink-0 text-xs px-3 py-1.5 rounded-full border font-medium transition-all',
+                'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
                 selectedArea === area
-                  ? 'bg-blue-500 text-white border-blue-500 shadow-sm'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-blue-300 hover:text-blue-500',
+                  ? 'bg-violet-600 text-white border-violet-600'
+                  : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300 hover:text-violet-600',
               ].join(' ')}
             >
               {area}
@@ -234,14 +234,20 @@ export default function HomePage() {
 
       {/* 内容区域 */}
       {loading && (
-        <div className="space-y-4 pt-2">
+        <div className="space-y-3 pt-2">
           {[1, 2].map((i) => (
-            <div key={i} className="rounded-2xl border bg-white shadow-card overflow-hidden animate-pulse">
-              <div className="h-24 bg-gradient-to-br from-orange-100 to-red-100" />
-              <div className="p-4 space-y-3">
-                <div className="h-3 bg-gray-100 rounded-full w-3/4" />
+            <div key={i} className="rounded-2xl bg-white shadow-card overflow-hidden animate-pulse flex">
+              <div className="w-1 bg-gray-100 shrink-0" />
+              <div className="flex-1 p-4 space-y-3">
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1.5 flex-1">
+                    <div className="h-4 bg-gray-100 rounded w-1/2" />
+                    <div className="h-3 bg-gray-100 rounded w-1/3" />
+                  </div>
+                  <div className="h-10 w-16 bg-gray-100 rounded-xl ml-4" />
+                </div>
                 <div className="h-2 bg-gray-100 rounded-full" />
-                <div className="h-10 bg-gray-100 rounded-xl" />
+                <div className="h-9 bg-gray-100 rounded-xl" />
               </div>
             </div>
           ))}
@@ -263,21 +269,25 @@ export default function HomePage() {
 
       {!loading && !error && activeCoupons.length === 0 && (
         <div className="text-center py-20 animate-fade-in">
-          <div className="text-6xl mb-4 animate-bounce">🍜</div>
-          <p className="text-gray-500 text-base font-medium">暂无活跃优惠券</p>
-          <p className="text-gray-300 text-sm mt-1.5">
-            商家发布优惠后将实时出现在这里
+          <div className="mx-auto w-14 h-14 mb-5 rounded-2xl bg-indigo-50 flex items-center justify-center">
+            <svg className="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185z" />
+            </svg>
+          </div>
+          <p className="text-gray-700 text-base font-semibold">附近暂无优惠</p>
+          <p className="text-gray-400 text-sm mt-1.5">
+            商家发布后将实时出现在这里
           </p>
-          <div className="flex justify-center gap-3 mt-5">
+          <div className="flex justify-center gap-3 mt-6">
             <a
               href="/voice"
-              className="inline-flex items-center gap-1.5 text-sm bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold px-4 py-2 rounded-full shadow-brand hover:shadow-brand-lg transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition-all active:scale-95"
             >
               🎤 语音发布
             </a>
             <a
               href="/merchant"
-              className="inline-flex items-center gap-1.5 text-sm bg-white text-orange-600 font-semibold px-4 py-2 rounded-full border border-orange-200 hover:border-orange-400 transition-all"
+              className="inline-flex items-center gap-1.5 text-sm bg-white text-gray-700 font-semibold px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-all"
             >
               商家发布
             </a>

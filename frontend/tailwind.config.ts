@@ -10,12 +10,13 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          50: '#fff7ed',
-          100: '#ffedd5',
-          200: '#fed7aa',
-          500: '#f97316',
-          600: '#ea580c',
-          700: '#c2410c',
+          50: '#eef2ff',
+          100: '#e0e7ff',
+          200: '#c7d2fe',
+          400: '#818cf8',
+          500: '#6366f1',
+          600: '#4f46e5',
+          700: '#4338ca',
         },
       },
       keyframes: {
@@ -62,10 +63,10 @@ const config: Config = {
         'bounce-in': 'bounce-in 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
       },
       boxShadow: {
-        'brand': '0 4px 24px -4px rgba(249,115,22,0.35)',
-        'brand-lg': '0 8px 32px -4px rgba(249,115,22,0.45)',
-        'card': '0 2px 12px 0 rgba(0,0,0,0.06), 0 1px 3px 0 rgba(0,0,0,0.04)',
-        'card-hover': '0 8px 32px -4px rgba(0,0,0,0.12), 0 2px 8px -2px rgba(0,0,0,0.06)',
+        'brand': '0 4px 24px -4px rgba(99,102,241,0.3)',
+        'brand-lg': '0 8px 32px -4px rgba(99,102,241,0.4)',
+        'card': '0 2px 8px 0 rgba(0,0,0,0.06), 0 1px 3px 0 rgba(0,0,0,0.04)',
+        'card-hover': '0 8px 24px -4px rgba(0,0,0,0.10), 0 2px 8px -2px rgba(0,0,0,0.05)',
       },
     },
   },
