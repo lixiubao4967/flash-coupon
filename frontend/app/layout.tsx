@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'default',
+    statusBarStyle: 'black-translucent',
     title: '闪购优惠券',
   },
   icons: {
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#6366f1',
+  themeColor: '#0f172a',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -34,35 +34,35 @@ export default function RootLayout({
         <link rel="manifest" href="/manifest.json" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
-      <body>
+      <body className="bg-slate-900">
         <div className="min-h-screen flex flex-col">
           {/* Header */}
-          <header className="sticky top-0 z-50 bg-white border-b border-gray-100">
+          <header className="sticky top-0 z-50 bg-slate-900/95 backdrop-blur-sm border-b border-slate-800">
             <div className="max-w-2xl mx-auto px-4 h-12 flex items-center justify-between">
               <a href="/" className="flex items-center gap-1.5 group">
                 <span className="text-base leading-none">⚡</span>
-                <span className="text-gray-900 font-bold text-base tracking-tight group-hover:text-indigo-600 transition-colors">
+                <span className="text-white font-bold text-base tracking-tight group-hover:text-orange-400 transition-colors">
                   闪购优惠券
                 </span>
               </a>
               <nav className="flex items-center gap-0.5">
                 <a
                   href="/"
-                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                  className="text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-all"
                 >
                   发现优惠
                 </a>
                 <a
                   href="/voice"
-                  className="flex items-center gap-1 text-sm font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-all"
+                  className="flex items-center gap-1 text-sm font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 px-3 py-1.5 rounded-lg transition-all"
                 >
                   🎤 语音
                 </a>
                 <a
                   href="/merchant"
-                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 hover:bg-indigo-50 px-3 py-1.5 rounded-lg transition-all"
+                  className="text-sm font-medium text-slate-300 hover:text-white hover:bg-slate-800 px-3 py-1.5 rounded-lg transition-all"
                 >
                   商家
                 </a>
@@ -74,9 +74,9 @@ export default function RootLayout({
             {children}
           </main>
 
-          <footer className="text-center text-xs text-gray-400 py-5 border-t border-gray-100">
-            <span className="text-indigo-400 font-medium">⚡ Flash Coupon</span>
-            <span className="mx-2 text-gray-300">·</span>
+          <footer className="text-center text-xs text-slate-500 py-5 border-t border-slate-800">
+            <span className="text-orange-400 font-medium">⚡ Flash Coupon</span>
+            <span className="mx-2 text-slate-700">·</span>
             <span>&copy; {new Date().getFullYear()}</span>
           </footer>
         </div>

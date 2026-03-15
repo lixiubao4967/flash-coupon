@@ -116,7 +116,7 @@ export default function HomePage() {
       {/* 新优惠到达 Toast */}
       {showNewToast && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 animate-slide-down">
-          <div className="flex items-center gap-2 bg-indigo-600 text-white text-sm font-semibold px-4 py-2 rounded-full shadow-brand">
+          <div className="flex items-center gap-2 bg-orange-500 text-white text-sm font-semibold px-4 py-2 rounded-full shadow-brand">
             <span className="animate-pulse-fast">⚡</span>
             有新优惠券到了！
           </div>
@@ -133,11 +133,11 @@ export default function HomePage() {
             <span
               className={[
                 'relative inline-flex rounded-full h-2.5 w-2.5',
-                connected ? 'bg-green-400' : 'bg-gray-300',
+                connected ? 'bg-green-400' : 'bg-slate-600',
               ].join(' ')}
             />
           </span>
-          <span className="text-sm text-gray-500">
+          <span className="text-sm text-slate-400">
             {connected ? '实时连接中' : '连接断开'}
           </span>
         </div>
@@ -145,59 +145,77 @@ export default function HomePage() {
         {!pushEnabled ? (
           <button
             onClick={handleEnablePush}
-            className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-600 font-semibold px-3 py-1.5 rounded-lg border border-indigo-100 transition-all"
+            className="text-xs bg-slate-800 hover:bg-slate-700 text-orange-400 font-semibold px-3 py-1.5 rounded-lg border border-slate-700 hover:border-orange-500/40 transition-all"
           >
             🔔 开启推送
           </button>
         ) : (
-          <span className="text-xs text-green-600 font-semibold flex items-center gap-1">
+          <span className="text-xs text-green-400 font-semibold flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block" />
             推送已开启
           </span>
         )}
       </div>
 
-      {/* 页面标题 */}
-      <div>
-        <h1 className="text-2xl font-black text-gray-900">附近限时优惠</h1>
-        <p className="text-sm text-gray-400 mt-1">
-          实时发现周边商家发布的短时效优惠券
-          {activeCoupons.length > 0 && (
-            <span className="ml-1.5 text-indigo-500 font-semibold">{activeCoupons.length} 张可用</span>
-          )}
-        </p>
+      {/* 位置 + 标题区域 */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="flex items-center gap-1 text-sm text-slate-400 font-medium">
+              <svg className="w-3.5 h-3.5 text-orange-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              {selectedArea || '全地区'}
+            </span>
+            <button
+              onClick={fetchCoupons}
+              className="text-slate-500 hover:text-slate-300 transition-colors"
+              title="刷新"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            </button>
+          </div>
+          <h1 className="text-2xl font-black text-white">附近限时优惠</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            实时发现周边商家发布的短时效优惠券
+            {activeCoupons.length > 0 && (
+              <span className="ml-1.5 text-orange-400 font-semibold">{activeCoupons.length} 张可用</span>
+            )}
+          </p>
+        </div>
       </div>
 
       {/* 分类筛选 */}
       {allCategories.length > 0 && (
-        <div className="relative">
-          <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
+          <button
+            onClick={() => setSelectedCategory('')}
+            className={[
+              'shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-all',
+              !selectedCategory
+                ? 'bg-orange-500 text-white border-orange-500'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-orange-500/50 hover:text-orange-400',
+            ].join(' ')}
+          >
+            全分类
+          </button>
+          {allCategories.map((cat) => (
             <button
-              onClick={() => setSelectedCategory('')}
+              key={cat}
+              onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
               className={[
-                'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
-                !selectedCategory
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600',
+                'shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-all',
+                selectedCategory === cat
+                  ? 'bg-orange-500 text-white border-orange-500'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-orange-500/50 hover:text-orange-400',
               ].join(' ')}
             >
-              全分类
+              {cat}
             </button>
-            {allCategories.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat === selectedCategory ? '' : cat)}
-                className={[
-                  'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
-                  selectedCategory === cat
-                    ? 'bg-indigo-600 text-white border-indigo-600'
-                    : 'bg-white text-gray-500 border-gray-200 hover:border-indigo-300 hover:text-indigo-600',
-                ].join(' ')}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
+          ))}
         </div>
       )}
 
@@ -207,10 +225,10 @@ export default function HomePage() {
           <button
             onClick={() => setSelectedArea('')}
             className={[
-              'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
+              'shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-all',
               !selectedArea
-                ? 'bg-violet-600 text-white border-violet-600'
-                : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300 hover:text-violet-600',
+                ? 'bg-violet-500 text-white border-violet-500'
+                : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-violet-500/50 hover:text-violet-400',
             ].join(' ')}
           >
             全地区
@@ -220,10 +238,10 @@ export default function HomePage() {
               key={area}
               onClick={() => setSelectedArea(area === selectedArea ? '' : area)}
               className={[
-                'shrink-0 text-xs px-3 py-1.5 rounded-lg border font-medium transition-all',
+                'shrink-0 text-xs px-3 py-1.5 rounded-full border font-semibold transition-all',
                 selectedArea === area
-                  ? 'bg-violet-600 text-white border-violet-600'
-                  : 'bg-white text-gray-500 border-gray-200 hover:border-violet-300 hover:text-violet-600',
+                  ? 'bg-violet-500 text-white border-violet-500'
+                  : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-violet-500/50 hover:text-violet-400',
               ].join(' ')}
             >
               {area}
@@ -236,31 +254,35 @@ export default function HomePage() {
       {loading && (
         <div className="space-y-3 pt-2">
           {[1, 2].map((i) => (
-            <div key={i} className="rounded-2xl bg-white shadow-card overflow-hidden animate-pulse flex">
-              <div className="w-1 bg-gray-100 shrink-0" />
-              <div className="flex-1 p-4 space-y-3">
-                <div className="flex justify-between items-start">
-                  <div className="space-y-1.5 flex-1">
-                    <div className="h-4 bg-gray-100 rounded w-1/2" />
-                    <div className="h-3 bg-gray-100 rounded w-1/3" />
-                  </div>
-                  <div className="h-10 w-16 bg-gray-100 rounded-xl ml-4" />
+            <div key={i} className="rounded-2xl bg-slate-800 overflow-hidden animate-pulse">
+              <div className="p-4 space-y-3">
+                <div className="flex gap-2">
+                  <div className="h-5 w-16 bg-slate-700 rounded-full" />
+                  <div className="h-5 w-12 bg-slate-700 rounded-full" />
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full" />
-                <div className="h-9 bg-gray-100 rounded-xl" />
+                <div className="flex gap-3 items-center">
+                  <div className="w-16 h-16 bg-slate-700 rounded-xl shrink-0" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-slate-700 rounded w-2/3" />
+                    <div className="h-3 bg-slate-700 rounded w-1/2" />
+                    <div className="h-6 bg-slate-700 rounded w-1/4" />
+                  </div>
+                </div>
+                <div className="h-1 bg-slate-700 rounded-full" />
               </div>
+              <div className="h-11 bg-slate-700" />
             </div>
           ))}
         </div>
       )}
 
       {!loading && error && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-5 text-center animate-fade-in">
+        <div className="bg-red-900/30 border border-red-800/50 rounded-2xl p-5 text-center animate-fade-in">
           <p className="text-2xl mb-2">⚠️</p>
-          <p className="text-red-600 text-sm font-medium">{error}</p>
+          <p className="text-red-400 text-sm font-medium">{error}</p>
           <button
             onClick={fetchCoupons}
-            className="mt-3 text-xs text-red-500 hover:text-red-700 underline font-medium"
+            className="mt-3 text-xs text-red-400 hover:text-red-300 underline font-medium"
           >
             重新加载
           </button>
@@ -269,25 +291,25 @@ export default function HomePage() {
 
       {!loading && !error && activeCoupons.length === 0 && (
         <div className="text-center py-20 animate-fade-in">
-          <div className="mx-auto w-14 h-14 mb-5 rounded-2xl bg-indigo-50 flex items-center justify-center">
-            <svg className="w-7 h-7 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+          <div className="mx-auto w-16 h-16 mb-5 rounded-2xl bg-slate-800 flex items-center justify-center border border-slate-700">
+            <svg className="w-7 h-7 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185z" />
             </svg>
           </div>
-          <p className="text-gray-700 text-base font-semibold">附近暂无优惠</p>
-          <p className="text-gray-400 text-sm mt-1.5">
+          <p className="text-white text-base font-semibold">附近暂无优惠</p>
+          <p className="text-slate-500 text-sm mt-1.5">
             商家发布后将实时出现在这里
           </p>
           <div className="flex justify-center gap-3 mt-6">
             <a
               href="/voice"
-              className="inline-flex items-center gap-1.5 text-sm bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-4 py-2 rounded-lg transition-all active:scale-95"
+              className="inline-flex items-center gap-1.5 text-sm bg-orange-500 hover:bg-orange-600 text-white font-semibold px-4 py-2 rounded-lg transition-all active:scale-95"
             >
               🎤 语音发布
             </a>
             <a
               href="/merchant"
-              className="inline-flex items-center gap-1.5 text-sm bg-white text-gray-700 font-semibold px-4 py-2 rounded-lg border border-gray-200 hover:border-gray-300 transition-all"
+              className="inline-flex items-center gap-1.5 text-sm bg-slate-800 text-slate-300 font-semibold px-4 py-2 rounded-lg border border-slate-700 hover:border-slate-600 hover:text-white transition-all"
             >
               商家发布
             </a>
