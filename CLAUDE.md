@@ -72,8 +72,8 @@ Full-stack PWA for real-time flash coupons. Merchants publish time-limited coupo
 - `backend/src/index.ts` — Express app, Socket.io setup, CORS, cron jobs
 - `backend/src/routes/coupons.ts` — All API endpoints
 - `backend/src/services/redis.ts` — Redis operations (coupon storage in sorted set by expiry, subscription storage)
-- `backend/src/services/hotpepper.ts` — Hot Pepper Gourmet API 定时抓取（每 30 分钟）
-- `backend/src/services/grok.ts` — xAI Grok API 解析 X 社交帖子（每 15 分钟）
+- `backend/src/services/hotpepper.ts` — Hot Pepper Gourmet API 定时抓取（每 30 分钟，默认东京地区）
+- `backend/src/services/grok.ts` — xAI Grok Responses API 搜索 X 社交帖子（每天 JST 7:00，默认虎ノ門）
 - `backend/src/services/ai-parser.ts` — Claude Haiku 解析语音转录文本为结构化字段
 - `backend/src/types.ts` — Shared `Coupon` interface
 - `frontend/app/page.tsx` — Consumer UI (real-time coupon list, category/area filter tabs)
@@ -172,7 +172,7 @@ ANTHROPIC_API_KEY=your_anthropic_key
 # 自动抓取（可选）
 HOTPEPPER_API_KEY=your_hotpepper_key
 GROK_API_KEY=your_grok_key
-GROK_SEARCH_AREAS=渋谷,新宿,梅田,博多,名古屋
+GROK_SEARCH_AREAS=虎ノ門
 ```
 
 5. Deploy 后复制 Railway 分配的域名，格式为 `https://xxx.railway.app`
@@ -329,3 +329,55 @@ pm2 logs cloudflared --lines 30
 
 > ⚠️ Quick Tunnel 的域名**每次重启 cloudflared 会变**，需同步更新 Vercel 环境变量并重新部署。
 > 如需固定域名，注册 Cloudflare 账号后改用 Named Tunnel。
+
+---
+
+## 调试与修复记录（2026-03-17）
+
+### 修复内容
+
+#### 1. PWA 图标无效
+**问题**: `frontend/public/icons/` 下所有 PNG 都是 1×1 像素的占位图，浏览器报 Manifest 图标下载错误
+**解决**: 用 Python Pillow 生成橙色背景 + 白色闪电图案的正式 PWA 图标（72~512px 全尺寸）
+
+#### 2. xAI Grok API 410 Gone
+**问题**: xAI 于 2025-12 废弃了 `/v1/chat/completions` 的 `search_parameters` 功能
+**解决**: 迁移到新的 Responses API：
+- 端点: `/v1/chat/completions` → `/v1/responses`
+- 请求体: `messages` → `input`，`search_parameters` → `tools: [{ type: "web_search" }]`
+- 模型: `grok-3` → `grok-4-latest`（搜索工具仅支持 grok-4 系列）
+- 响应解析: 适配新的 `output[].content[].text` 格式
+
+#### 3. HotPepper 返回空结果
+**问题**: 查询未指定地区，API 返回空
+**解决**: 添加 `large_area: 'Z011'`（东京地区）参数
+
+#### 4. Grok API 费用优化
+**问题**: 每 15 分钟 × 5 个城市 = 480 次/天，约 $540/月
+**解决**:
+- 频率: 每 15 分钟 → 每天 JST 07:00（cron: `0 22 * * *` UTC）
+- 区域: 5 个城市 → 仅虎ノ門（`.env` 中 `GROK_SEARCH_AREAS=虎ノ門`）
+- 费用: $540/月 → 约 $1.2/月（节省 99.8%）
+
+### 当前运行费用
+
+| 服务 | 月费用 | 说明 |
+|------|--------|------|
+| xAI Grok API | ~$1.2 | 每天 1 次搜索（JST 7:00） |
+| Anthropic Claude API | 按量 | 语音发布时触发，单次 ~$0.001 |
+| HotPepper API | 免费 | — |
+| Vercel (Frontend) | 免费 | 免费额度内 |
+| AWS EC2 (Backend) | 按实例 | 已有资源 |
+| Redis | 免费 | EC2 本地运行 |
+| Cloudflare Tunnel | 免费 | Quick Tunnel |
+
+### EC2 后端更新流程
+
+```bash
+cd /data/okcoin/flash-coupon && git pull && cd backend && npm run build && pm2 restart flash-coupon-backend
+```
+
+查看日志：
+```bash
+pm2 logs flash-coupon-backend --lines 20
+```
