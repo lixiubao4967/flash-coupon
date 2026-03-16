@@ -60,7 +60,7 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
       const response = await axios.post(
         GROK_API_URL,
         {
-          model: 'grok-3-latest',
+          model: 'grok-4-latest',
           input: [{ role: 'user', content: prompt }],
           tools: [
             {
