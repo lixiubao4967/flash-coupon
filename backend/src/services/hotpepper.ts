@@ -41,6 +41,7 @@ export async function fetchHotPepperCoupons(): Promise<void> {
         format: 'json',
         count: 100,
         coupon: 1,
+        large_area: 'Z011', // Tokyo area — HotPepper requires an area filter
       },
       timeout: 10_000,
     });

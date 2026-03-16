@@ -3,7 +3,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { Coupon } from '../types';
 import { saveCoupon, getActiveCoupons } from './redis';
 
-const GROK_API_URL = 'https://api.x.ai/v1/chat/completions';
+// New Responses API endpoint (old /v1/chat/completions with search_parameters is deprecated, 410 Gone)
+const GROK_API_URL = 'https://api.x.ai/v1/responses';
 const DURATION_MINUTES = 90;
 const DEFAULT_SEARCH_AREAS = ['渋谷', '新宿', '梅田', '博多', '名古屋'];
 
@@ -53,39 +54,67 @@ Return a JSON object with a "deals" array. Each deal must have:
 - lat (number or null)
 - lng (number or null)
 
-Only include posts that are real-time limited-time offers within the next 2 hours. Return at most 5 deals. If none found, return {"deals":[]}.`;
+Only include posts that are real-time limited-time offers within the next 2 hours. Return at most 5 deals. If none found, return {"deals":[]}.
+IMPORTANT: Reply with ONLY the JSON object, no other text.`;
 
       const response = await axios.post(
         GROK_API_URL,
         {
-          model: 'grok-3',
-          messages: [{ role: 'user', content: prompt }],
-          response_format: { type: 'json_object' },
-          search_parameters: {
-            mode: 'on',
-            sources: [{ type: 'x' }],
-            return_citations: true,
-          },
-          max_tokens: 1000,
+          model: 'grok-3-latest',
+          input: [{ role: 'user', content: prompt }],
+          tools: [
+            {
+              type: 'web_search',
+              filters: {
+                allowed_domains: ['x.com', 'twitter.com'],
+              },
+            },
+          ],
         },
         {
           headers: {
             Authorization: `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           },
-          timeout: 20_000,
+          timeout: 30_000,
         }
       );
 
-      const content =
-        response.data.choices?.[0]?.message?.content ?? '{"deals":[]}';
+      // Extract text content from the Responses API output
+      const output = response.data.output ?? [];
+      let content = '';
+      for (const block of output) {
+        if (block.type === 'message') {
+          for (const part of block.content ?? []) {
+            if (part.type === 'output_text') {
+              content += part.text;
+            }
+          }
+        }
+      }
+
+      if (!content) {
+        console.warn(`[Grok] No content in response for area ${area}`);
+        continue;
+      }
+
+      // Try to extract JSON from the response (may be wrapped in markdown code blocks)
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        console.warn(
+          `[Grok] Could not find JSON for area ${area}:`,
+          content.slice(0, 100)
+        );
+        continue;
+      }
+
       let parsed: GrokParsedResponse;
       try {
-        parsed = JSON.parse(content);
+        parsed = JSON.parse(jsonMatch[0]);
       } catch {
         console.warn(
           `[Grok] Could not parse JSON for area ${area}:`,
-          content.slice(0, 100)
+          jsonMatch[0].slice(0, 100)
         );
         continue;
       }
