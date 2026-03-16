@@ -6,7 +6,7 @@ import { saveCoupon, getActiveCoupons } from './redis';
 // New Responses API endpoint (old /v1/chat/completions with search_parameters is deprecated, 410 Gone)
 const GROK_API_URL = 'https://api.x.ai/v1/responses';
 const DURATION_MINUTES = 90;
-const DEFAULT_SEARCH_AREAS = ['渋谷', '新宿', '梅田', '博多', '名古屋'];
+const DEFAULT_SEARCH_AREAS = ['虎ノ門ヒルズ'];
 
 interface GrokDeal {
   shopName: string;

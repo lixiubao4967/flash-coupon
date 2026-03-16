@@ -67,8 +67,8 @@ async function bootstrap() {
     );
   });
 
-  // Grok / X 社交：每 15 分钟拉取一次
-  cron.schedule('*/15 * * * *', () => {
+  // Grok / X 社交：每天早上 7 点（JST）拉取一次
+  cron.schedule('0 22 * * *', () => {  // UTC 22:00 = JST 07:00
     console.log('[Cron] Running Grok social coupon fetch...');
     fetchGrokSocialCoupons().catch((err: Error) =>
       console.error('[Cron] Grok error:', err.message)
