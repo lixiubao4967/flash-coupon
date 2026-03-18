@@ -42,19 +42,26 @@ export async function fetchGrokSocialCoupons(): Promise<void> {
 
   for (const area of areas) {
     try {
-      const prompt = `Search recent X (Twitter) posts from the last 2 hours for restaurant deals, coupons, or flash discounts in ${area}, Japan.
+      const prompt = `Search recent X (Twitter) posts and web pages for PayPay クーポン (PayPay coupon) information at restaurants or shops in ${area}, Japan.
+
+IMPORTANT RULES:
+- Only include PayPay クーポン (coupon). Do NOT include: PayPay 還元, キャッシュバック, セール, ポイント, or general discounts that are not coupons.
+- A クーポン means a specific coupon that can be used at checkout (e.g. "PayPayクーポンで100円引き", "PayPayクーポン提示で10%OFF").
+- Include ALL PayPay coupons regardless of discount amount — even small discounts like 50円引き or 5% off are valid.
+- Do NOT filter by minimum discount percentage.
+
 Return a JSON object with a "deals" array. Each deal must have:
-- shopName (string)
-- item (string, what food/drink)
-- discount (string, e.g. "50%" or "半額" or "500円引き")
-- description (string, brief detail)
+- shopName (string, the restaurant or shop name)
+- item (string, what food/drink or the coupon target)
+- discount (string, the coupon value e.g. "100円引き" or "10%OFF")
+- description (string, brief detail about how to use the PayPay coupon)
 - area (string, neighborhood or city)
 - category (string, cuisine type e.g. ラーメン, 居酒屋, カフェ)
-- originalUrl (string, the X post URL)
+- originalUrl (string, the X post URL or source page URL)
 - lat (number or null)
 - lng (number or null)
 
-Only include posts that are real-time limited-time offers within the next 2 hours. Return at most 5 deals. If none found, return {"deals":[]}.
+Return at most 10 deals. If no PayPay coupons found, return {"deals":[]}.
 IMPORTANT: Reply with ONLY the JSON object, no other text.`;
 
       const response = await axios.post(
@@ -65,9 +72,6 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
           tools: [
             {
               type: 'web_search',
-              filters: {
-                allowed_domains: ['x.com', 'twitter.com'],
-              },
             },
           ],
         },
@@ -136,7 +140,7 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
           shopId: `social:${uuidv4()}`,
           shopName: deal.shopName,
           item: deal.item || '限定メニュー',
-          discount: deal.discount || 'お得情報',
+          discount: deal.discount || 'PayPayクーポン',
           description: deal.description || '',
           publishedAt: now,
           expiresAt: now + DURATION_MINUTES * 60 * 1000,
