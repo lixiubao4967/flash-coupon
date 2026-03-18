@@ -1,5 +1,39 @@
 # CLAUDE.md
 
+## 开始工作前必须执行（CRITICAL）
+
+每次修改代码前，必须先确保本地和远端代码同步：
+
+```bash
+# 1. 获取远端最新状态
+git fetch origin
+
+# 2. 检查本地状态
+git status
+
+# 3. 检查是否有未同步的远端提交
+git log HEAD..origin/main --oneline
+
+# 4. 如果本地落后远端，先执行 git pull
+git pull
+```
+
+**为什么这很重要：**
+- 防止代码冲突（用户可能在本机做了修改但未 push）
+- 避免重复实现（远端可能有更新的代码）
+- 确保基于最新代码进行修改
+
+**工作流程：**
+```
+开始任务
+  ↓
+git fetch origin && git status
+  ↓
+本地 == 远端？ → 否 → git pull 同步
+  ↓ 是
+继续修改代码
+```
+
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Commands
