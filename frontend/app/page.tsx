@@ -18,6 +18,7 @@ export default function HomePage() {
   const [pushEnabled, setPushEnabled] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedArea, setSelectedArea] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   const [showNewToast, setShowNewToast] = useState(false);
 
   const fetchCoupons = useCallback(async () => {
@@ -108,6 +109,16 @@ export default function HomePage() {
     if (c.expiresAt <= Date.now()) return false;
     if (selectedCategory && c.category !== selectedCategory) return false;
     if (selectedArea && c.area !== selectedArea) return false;
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      const hit =
+        c.shopName?.toLowerCase().includes(q) ||
+        c.item?.toLowerCase().includes(q) ||
+        c.discount?.toLowerCase().includes(q) ||
+        c.category?.toLowerCase().includes(q) ||
+        c.area?.toLowerCase().includes(q);
+      if (!hit) return false;
+    }
     return true;
   });
 
@@ -186,6 +197,36 @@ export default function HomePage() {
             )}
           </p>
         </div>
+      </div>
+
+      {/* 搜索框 */}
+      <div className="relative">
+        <svg
+          className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 105 11a6 6 0 0012 0z" />
+        </svg>
+        <input
+          type="text"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder="搜索店名、商品、分类、地区…"
+          className="w-full bg-slate-800 border border-slate-700 rounded-xl pl-9 pr-9 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-orange-500/60 focus:ring-1 focus:ring-orange-500/30 transition-all"
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery('')}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition-colors"
+          >
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        )}
       </div>
 
       {/* 分类筛选 */}
@@ -296,9 +337,11 @@ export default function HomePage() {
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 14.25l6-6m4.5-3.493V21.75l-3.75-1.5-3.75 1.5-3.75-1.5-3.75 1.5V4.757c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0c1.1.128 1.907 1.077 1.907 2.185z" />
             </svg>
           </div>
-          <p className="text-white text-base font-semibold">附近暂无优惠</p>
+          <p className="text-white text-base font-semibold">
+            {searchQuery ? '没有匹配的优惠' : '附近暂无优惠'}
+          </p>
           <p className="text-slate-500 text-sm mt-1.5">
-            商家发布后将实时出现在这里
+            {searchQuery ? `没有找到含「${searchQuery}」的优惠券` : '商家发布后将实时出现在这里'}
           </p>
           <div className="flex justify-center gap-3 mt-6">
             <a
