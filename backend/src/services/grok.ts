@@ -5,8 +5,8 @@ import { saveCoupon, getActiveCoupons } from './redis';
 
 // New Responses API endpoint (old /v1/chat/completions with search_parameters is deprecated, 410 Gone)
 const GROK_API_URL = 'https://api.x.ai/v1/responses';
-const DURATION_MINUTES = 90;
-const DEFAULT_SEARCH_AREAS = ['虎ノ門ヒルズ'];
+const DURATION_MINUTES = 720; // 12 hours — matches twice-daily fetch schedule
+const DEFAULT_SEARCH_AREAS = ['渋谷', '新宿', '池袋', '虎ノ門'];
 
 interface GrokDeal {
   shopName: string;
@@ -64,28 +64,41 @@ Return a JSON object with a "deals" array. Each deal must have:
 Return at most 10 deals. If no PayPay coupons found, return {"deals":[]}.
 IMPORTANT: Reply with ONLY the JSON object, no other text.`;
 
-      const response = await axios.post(
-        GROK_API_URL,
-        {
-          model: 'grok-4-latest',
-          input: [{ role: 'user', content: prompt }],
-          tools: [
-            {
-              type: 'web_search',
-            },
-          ],
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${apiKey}`,
-            'Content-Type': 'application/json',
+      console.log(`[Grok] Sending request for area: ${area}`);
+      let response;
+      try {
+        response = await axios.post(
+          GROK_API_URL,
+          {
+            model: 'grok-4-latest',
+            input: [{ role: 'user', content: prompt }],
+            tools: [{ type: 'web_search' }],
           },
-          timeout: 30_000,
+          {
+            headers: {
+              Authorization: `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            timeout: 60_000,
+          }
+        );
+      } catch (axiosErr: unknown) {
+        if (axios.isAxiosError(axiosErr) && axiosErr.response) {
+          console.error(
+            `[Grok] API error for area ${area}: HTTP ${axiosErr.response.status}`,
+            JSON.stringify(axiosErr.response.data).slice(0, 300)
+          );
+        } else {
+          const msg = axiosErr instanceof Error ? axiosErr.message : String(axiosErr);
+          console.error(`[Grok] Request failed for area ${area}:`, msg);
         }
-      );
+        continue;
+      }
 
       // Extract text content from the Responses API output
+      // Response structure: { output: [ { type: 'message', content: [ { type: 'output_text', text: '...' } ] } ] }
       const output = response.data.output ?? [];
+      console.log(`[Grok] Response output blocks for ${area}:`, output.map((b: { type: string }) => b.type).join(', ') || '(none)');
       let content = '';
       for (const block of output) {
         if (block.type === 'message') {
@@ -98,7 +111,7 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
       }
 
       if (!content) {
-        console.warn(`[Grok] No content in response for area ${area}`);
+        console.warn(`[Grok] No text content in response for area ${area}. Full output:`, JSON.stringify(output).slice(0, 500));
         continue;
       }
 
@@ -166,7 +179,7 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
       console.log(`[Grok] Area ${area}: inserted ${inserted} social coupons`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      console.error(`[Grok] Error fetching for area ${area}:`, message);
+      console.error(`[Grok] Unexpected error for area ${area}:`, message);
     }
   }
 }
