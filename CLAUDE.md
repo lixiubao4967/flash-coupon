@@ -59,7 +59,7 @@ npx web-push generate-vapid-keys
 ```
 
 Environment files needed:
-- `backend/.env` — PORT, FRONTEND_URL, REDIS_URL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, ANTHROPIC_API_KEY, HOTPEPPER_API_KEY, GROK_API_KEY
+- `backend/.env` — PORT, FRONTEND_URL, REDIS_URL, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, ANTHROPIC_API_KEY, HOTPEPPER_API_KEY, GROK_API_KEY, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_ID
 - `frontend/.env.local` — NEXT_PUBLIC_BACKEND_URL, NEXT_PUBLIC_VAPID_PUBLIC_KEY
 
 ### ⚠️ 部署前需要你完成的事项
@@ -69,10 +69,21 @@ Environment files needed:
 | Key | 用途 | 是否必须 | 申请地址 |
 |-----|------|----------|----------|
 | `ANTHROPIC_API_KEY` | 语音发布 AI 解析（Claude Haiku） | **必须** | https://console.anthropic.com/ |
+| `STRIPE_SECRET_KEY` | 收费系统支付处理 | **必须** | https://dashboard.stripe.com/apikeys |
+| `STRIPE_WEBHOOK_SECRET` | Stripe Webhook 验签 | **必须** | Stripe Dashboard → Webhooks |
+| `STRIPE_PRICE_ID` | Pro 订阅价格 ID（`price_...`） | **必须** | Stripe Dashboard → Products |
 | `HOTPEPPER_API_KEY` | 自动抓取 Hot Pepper 餐厅优惠 | 可选 | https://webservice.recruit.co.jp/register |
-| `GROK_API_KEY` | 解析 X 社交帖子中的优惠信息 | 可选 | https://console.x.ai/ |
+| `GROK_API_KEY` | 搜索 X 社交帖子 + PayPay 优惠信息 | 可选 | https://console.x.ai/ |
 
 > Hot Pepper / Grok 未配置时后端会跳过对应抓取，语音发布和手动发布不受影响。
+> Stripe 未配置时商家注册/登录仍可用，但升级 Pro 功能不可用。
+
+#### Stripe 配置步骤
+1. Stripe Dashboard → Products → 新建产品「Flash Coupon Pro」，价格 ¥980/月（recurring）
+2. 复制 Price ID（`price_...` 开头）填入 `STRIPE_PRICE_ID`
+3. Stripe Dashboard → Webhooks → 添加端点 `https://your-backend/api/webhooks/stripe`
+4. 监听事件：`checkout.session.completed`、`customer.subscription.deleted`
+5. 复制 Signing Secret 填入 `STRIPE_WEBHOOK_SECRET`
 
 #### Step 2 — 生成 VAPID Keys（Web Push 通知）
 
@@ -104,16 +115,21 @@ Full-stack PWA for real-time flash coupons. Merchants publish time-limited coupo
 
 ### Key Files
 - `backend/src/index.ts` — Express app, Socket.io setup, CORS, cron jobs
-- `backend/src/routes/coupons.ts` — All API endpoints
+- `backend/src/routes/coupons.ts` — All coupon API endpoints（POST 需 API Key 认证）
+- `backend/src/routes/merchants.ts` — 商家注册/登录/套餐/Stripe Checkout & Portal
+- `backend/src/middleware/auth.ts` — API Key 认证中间件（X-API-Key header）
 - `backend/src/services/redis.ts` — Redis operations (coupon storage in sorted set by expiry, subscription storage)
-- `backend/src/services/hotpepper.ts` — Hot Pepper Gourmet API 定时抓取（每 30 分钟，默认东京地区）
-- `backend/src/services/grok.ts` — xAI Grok Responses API 搜索 X 社交帖子（每天 JST 7:00，默认虎ノ門）
+- `backend/src/services/merchant.ts` — 商家账户 CRUD、配额检查、Stripe 客户关联
+- `backend/src/services/hotpepper.ts` — Hot Pepper Gourmet API 定时抓取（每 30 分钟，东京地区）
+- `backend/src/services/grok.ts` — xAI Grok Responses API 搜索 X 社交帖子（每天 JST 7:00，虎ノ門）
+- `backend/src/services/paypay.ts` — Grok web_search 搜索东京 PayPay 优惠（每天 JST 8:00）
 - `backend/src/services/ai-parser.ts` — Claude Haiku 解析语音转录文本为结构化字段
 - `backend/src/types.ts` — Shared `Coupon` interface
 - `frontend/app/page.tsx` — Consumer UI (real-time coupon list, category/area filter tabs)
-- `frontend/app/voice/page.tsx` — 语音发布页（任何人均可使用）
-- `frontend/app/merchant/page.tsx` — Merchant publish form
+- `frontend/app/voice/page.tsx` — 语音发布页（需登录）
+- `frontend/app/merchant/page.tsx` — 商家注册/登录 + 套餐展示 + 发券表单
 - `frontend/components/VoicePublisher.tsx` — 语音录制 → AI 解析 → 确认 → 发布 → 分享全流程
+- `frontend/components/PublishForm.tsx` — 手动发券表单（传入 apiKey + shopId）
 - `frontend/components/CouponCard.tsx` — Coupon display with source badge, share button, countdown and quota bar
 - `frontend/lib/socket.ts` — Socket.io client singleton
 - `frontend/lib/webpush.ts` — Web Push subscription logic
@@ -135,22 +151,49 @@ interface Coupon {
   radiusKm: number;
   totalQuota: number;
   usedCount: number;
-  source: 'manual' | 'hotpepper' | 'social';  // 数据来源
+  source: 'manual' | 'hotpepper' | 'social' | 'paypay';  // 数据来源
   category: string;     // 分类，如 "ラーメン"
   area: string;         // 地区，如 "渋谷"
   originalUrl?: string; // 外部原文链接
 }
+
+// 商家账户（Redis hash: merchant:{shopId}）
+interface Merchant {
+  shopId: string;       // UUID
+  email: string;
+  passwordHash: string; // scrypt hash
+  apiKey: string;       // UUID，用于 X-API-Key 认证
+  plan: 'free' | 'pro';
+  stripeCustomerId?: string;
+}
 ```
 
+### 商家收费系统
+
+- **免费版**：每月 3 张券（Redis key: `merchant:monthly:{shopId}:{YYYY-MM}`）
+- **Pro 版**：¥980/月，通过 Stripe 订阅，无限发券
+- **认证**：`X-API-Key` header，商家注册后获得
+- **会话**：前端 localStorage 存储（key: `flash_merchant_session`）
+
+Stripe 事件处理：
+- `checkout.session.completed` → 升级为 Pro，关联 stripeCustomerId
+- `customer.subscription.deleted` → 降级为 Free
+
 ### API Endpoints
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/coupons` | All active coupons（支持 `?category=` `?area=` 过滤） |
-| POST | `/api/coupons` | Publish coupon (201)，可选字段 `category` `area` |
-| POST | `/api/coupons/voice/parse` | 语音转录文本 → AI 解析结构化字段（需 ANTHROPIC_API_KEY） |
-| POST | `/api/coupons/:id/use` | Claim coupon (409 if quota exhausted) |
-| POST | `/api/coupons/push/subscribe` | Register Web Push subscription |
-| GET | `/health` | Health check |
+| Method | Path | Auth | Description |
+|--------|------|------|-------------|
+| GET | `/api/coupons` | — | All active coupons（支持 `?category=` `?area=` 过滤） |
+| POST | `/api/coupons` | X-API-Key | Publish coupon (201)，配额检查 |
+| POST | `/api/coupons/voice/parse` | X-API-Key | 语音转录文本 → AI 解析结构化字段 |
+| POST | `/api/coupons/:id/use` | — | Claim coupon (409 if quota exhausted) |
+| POST | `/api/coupons/push/subscribe` | — | Register Web Push subscription |
+| POST | `/api/merchants/register` | — | 商家注册（邮箱+密码） |
+| POST | `/api/merchants/login` | — | 商家登录，返回 session |
+| GET | `/api/merchants/me` | X-API-Key | 获取当前套餐、配额信息 |
+| POST | `/api/merchants/checkout` | X-API-Key | 创建 Stripe Checkout Session（升级 Pro） |
+| POST | `/api/merchants/portal` | X-API-Key | 创建 Stripe Customer Portal（管理订阅） |
+| POST | `/api/webhooks/stripe` | Stripe签名 | Stripe webhook（升降级处理） |
+| GET | `/health` | — | Health check |
 
 ### Socket.io Events
 - `new-coupon` — broadcast when merchant publishes
@@ -203,9 +246,14 @@ VAPID_SUBJECT=mailto:you@example.com
 # AI 解析（语音发布功能必填）
 ANTHROPIC_API_KEY=your_anthropic_key
 
+# Stripe 收费系统（升级 Pro 功能必填）
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID=price_...   # ⚠️ 必须是 price_... 开头，不是 prod_...
+
 # 自动抓取（可选）
 HOTPEPPER_API_KEY=your_hotpepper_key
-GROK_API_KEY=your_grok_key
+GROK_API_KEY=your_grok_key           # 同时用于 X 社交帖子 + PayPay 搜索
 GROK_SEARCH_AREAS=虎ノ門
 ```
 
@@ -242,8 +290,9 @@ curl https://xxx.railway.app/api/coupons
 
 打开 Vercel 域名，测试：
 - [ ] 首页能加载，连接状态显示绿点（Socket.io 正常）
-- [ ] 语音发布页（/voice）可以录音并解析
-- [ ] 商家发布页（/merchant）可以发布，首页实时出现
+- [ ] 语音发布页（/voice）需要登录后才能使用
+- [ ] 商家发布页（/merchant）可以注册/登录，发券受配额限制
+- [ ] Stripe 测试卡（4242 4242 4242 4242）可完成升级 Pro
 
 ---
 
@@ -397,9 +446,10 @@ pm2 logs cloudflared --lines 30
 
 | 服务 | 月费用 | 说明 |
 |------|--------|------|
-| xAI Grok API | ~$1.2 | 每天 1 次搜索（JST 7:00） |
+| xAI Grok API | ~$2.4 | 每天 2 次搜索（X 社交 JST 7:00/19:00 + PayPay JST 8:00） |
 | Anthropic Claude API | 按量 | 语音发布时触发，单次 ~$0.001 |
 | HotPepper API | 免费 | — |
+| Stripe | 手续费 | 每笔 3.6%（日本卡），无月费 |
 | Vercel (Frontend) | 免费 | 免费额度内 |
 | AWS EC2 (Backend) | 按实例 | 已有资源 |
 | Redis | 免费 | EC2 本地运行 |
@@ -408,10 +458,44 @@ pm2 logs cloudflared --lines 30
 ### EC2 后端更新流程
 
 ```bash
-cd /data/okcoin/flash-coupon && git pull && cd backend && npm run build && pm2 restart flash-coupon-backend
+cd /data/okcoin/flash-coupon && git pull && cd backend && npm run build && pm2 restart flash-coupon-backend --update-env
 ```
+
+> ⚠️ 新增环境变量时必须加 `--update-env`，否则 pm2 不会加载新变量。
 
 查看日志：
 ```bash
 pm2 logs flash-coupon-backend --lines 20
 ```
+
+---
+
+## 功能迭代记录（2026-03-21）
+
+### 新增：商家收费系统
+
+#### 实现内容
+- 商家注册/登录（邮箱 + 密码，scrypt 加密）
+- API Key 认证（`X-API-Key` header），`POST /api/coupons` 必须携带
+- 免费版：每月 3 张券配额
+- Pro 版：¥980/月，Stripe Hosted Checkout，无限发券
+- Stripe webhook 处理升降级（`checkout.session.completed`、`customer.subscription.deleted`）
+- 前端 `/merchant` 页：注册/登录 → 套餐展示 → 发券，session 存 localStorage
+
+#### 踩坑
+- **`STRIPE_PRICE_ID` 填错**：填了 Product ID（`prod_...`），应填 Price ID（`price_...`）。在 Stripe Dashboard → Products → 点进产品 → 找 Pricing 区域的 `price_...`
+- **pm2 不加载新环境变量**：需 `pm2 restart --update-env`
+- **Stripe webhook 必须在 `express.json()` 前挂载**：需要 raw body 才能验签
+
+### 新增：PayPay クーポン 自动抓取
+
+#### 实现内容
+- `backend/src/services/paypay.ts`：使用 Grok Responses API（`grok-4-latest` + `web_search`）
+- 每天 JST 8:00（UTC 23:00）执行一次，覆盖东京全区
+- 优惠券有效期 12 小时，source: `'paypay'`
+- 前端 `CouponCard` 显示红粉色 "PayPay" 徽章
+
+#### 踩坑
+- **EC2 IP 被 PayPay 封锁**：直接 HTTP 爬取超时（30s），改用 Grok web_search 方案
+- **Grok 90s 超时**：grok-4 web_search 速度慢，改为 180s timeout
+- **英文严格 prompt 返回 0 条**：PayPay 优惠在 app 内，公开网页索引少。改为日语 prompt + 放宽条件（包含 PayPay 加盟店キャンペーン）后 Grok 返回 12 条，插入 9 条
