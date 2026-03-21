@@ -37,27 +37,29 @@ export async function fetchPayPayCoupons(): Promise<void> {
     existing.map((c) => c.originalUrl).filter(Boolean) as string[]
   );
 
-  const prompt = `Search the web for currently active PayPay クーポン (PayPay coupons) at restaurants and shops in ${TOKYO_QUERY}, Japan.
+  const prompt = `東京のPayPayクーポン・PayPay割引情報を検索してください。レストラン、カフェ、コンビニ、居酒屋など飲食店・小売店のPayPay関連お得情報を幅広く収集してください。
 
-RULES:
-- Only include PayPay クーポン — a specific coupon redeemable at checkout (e.g. "PayPayクーポンで100円引き", "PayPayクーポン提示で10%OFF").
-- Do NOT include: PayPay 還元, キャッシュバック, ポイント付与, general sales not requiring a coupon.
-- Include all discount sizes, even small ones (50円引き, 5%OFF).
-- Prioritize recently posted or currently active coupons.
-- Cover as many different wards (区) across Tokyo as possible.
+対象エリア：東京（新宿、渋谷、池袋、銀座、秋葉原、上野、浅草、品川、六本木、恵比寿、中目黒、吉祥寺など）
 
-Return a JSON object with a "deals" array (up to 20 items). Each deal:
-- shopName (string)
-- item (string, what the coupon applies to)
-- discount (string, e.g. "100円引き" or "10%OFF")
-- description (string, brief usage note)
-- area (string, e.g. "新宿区" or "渋谷")
-- category (string, cuisine/shop type e.g. ラーメン, カフェ, コンビニ)
-- originalUrl (string, source URL)
+対象情報：
+- PayPayクーポン（提示・利用で割引）
+- PayPay加盟店の現在のキャンペーン・お得情報
+- PayPay支払いでお得になる店舗情報
+
+最低でも10件以上見つけてください。見つかった情報をJSON形式で返してください。
+
+Return a JSON object with a "deals" array. Each deal:
+- shopName (string, 店舗名)
+- item (string, 対象商品・サービス、不明なら"全品")
+- discount (string, 割引内容 e.g. "100円引き", "10%OFF", "PayPay利用可")
+- description (string, 詳細・利用条件)
+- area (string, エリア e.g. "新宿", "渋谷")
+- category (string, e.g. ラーメン, カフェ, コンビニ, 居酒屋)
+- originalUrl (string or null, ソースURL)
 - lat (number or null)
 - lng (number or null)
 
-If no coupons found, return {"deals":[]}.
+情報が見つからない場合のみ {"deals":[]} を返す。
 IMPORTANT: Reply with ONLY the JSON object, no other text.`;
 
   console.log('[PayPay] Fetching PayPay coupons for 東京23区 via Grok...');
