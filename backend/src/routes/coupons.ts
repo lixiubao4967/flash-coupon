@@ -12,18 +12,33 @@ import {
   saveSubscription,
   getAllSubscriptions,
 } from '../services/redis';
+import { requireAuth } from '../middleware/auth';
+import { checkQuota, incrementMonthlyCount } from '../services/merchant';
 
 export function createCouponRouter(io: SocketServer): Router {
   const router = Router();
 
   // ─── POST /api/coupons ─────────────────────────────────────────────────────
-  // 商家发布优惠券
-  router.post('/', async (req: Request, res: Response) => {
+  // 商家发布优惠券（需要 X-API-Key 认证）
+  router.post('/', requireAuth, async (req: Request, res: Response) => {
+    const merchant = req.merchant!;
     const body = req.body as PublishCouponBody;
+
+    // 检查月度配额
+    const quota = await checkQuota(merchant.shopId, merchant.plan);
+    if (!quota.allowed) {
+      res.status(403).json({
+        error: `月度发券上限已达到（免费版每月 ${quota.limit} 张）。请升级到 Pro 套餐。`,
+        code: 'QUOTA_EXCEEDED',
+        count: quota.count,
+        limit: quota.limit,
+      });
+      return;
+    }
 
     // 基础参数校验
     const required: (keyof PublishCouponBody)[] = [
-      'shopId', 'shopName', 'item', 'discount', 'description',
+      'shopName', 'item', 'discount', 'description',
       'durationMinutes', 'location', 'radiusKm', 'totalQuota',
     ];
     for (const field of required) {
@@ -41,7 +56,7 @@ export function createCouponRouter(io: SocketServer): Router {
     const now = Date.now();
     const coupon: Coupon = {
       id: uuidv4(),
-      shopId: body.shopId,
+      shopId: merchant.shopId,
       shopName: body.shopName,
       item: body.item,
       discount: body.discount,
@@ -60,6 +75,7 @@ export function createCouponRouter(io: SocketServer): Router {
 
     try {
       await saveCoupon(coupon);
+      await incrementMonthlyCount(merchant.shopId);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unknown error';
       res.status(500).json({ error: `Failed to save coupon: ${message}` });

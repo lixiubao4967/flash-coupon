@@ -20,8 +20,18 @@ export interface Coupon {
   originalUrl?: string;
 }
 
-export interface PublishCouponPayload {
+export type MerchantPlan = 'free' | 'pro';
+
+export interface MerchantSession {
   shopId: string;
+  email: string;
+  apiKey: string;
+  plan: MerchantPlan;
+  monthlyCount: number;
+  monthlyLimit: number | null; // null = unlimited (Pro)
+}
+
+export interface PublishCouponPayload {
   shopName: string;
   item: string;
   discount: string;

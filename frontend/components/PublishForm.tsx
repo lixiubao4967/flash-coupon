@@ -5,6 +5,8 @@ import { PublishCouponPayload, Coupon } from '@/lib/types';
 
 interface PublishFormProps {
   onPublished?: (coupon: Coupon) => void;
+  apiKey: string;
+  shopId: string;
 }
 
 const BACKEND_URL =
@@ -12,9 +14,8 @@ const BACKEND_URL =
 
 const DEFAULT_LOCATION = { lat: 31.2304, lng: 121.4737 }; // 上海市中心（演示）
 
-export default function PublishForm({ onPublished }: PublishFormProps) {
+export default function PublishForm({ onPublished, apiKey, shopId }: PublishFormProps) {
   const [form, setForm] = useState<{
-    shopId: string;
     shopName: string;
     item: string;
     discount: string;
@@ -25,7 +26,6 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
     radiusKm: string;
     totalQuota: string;
   }>({
-    shopId: 'shop-001',
     shopName: '',
     item: '',
     discount: '50%',
@@ -82,7 +82,6 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
     }
 
     const payload: PublishCouponPayload = {
-      shopId: form.shopId.trim(),
       shopName: form.shopName.trim(),
       item: form.item.trim(),
       discount: form.discount.trim(),
@@ -96,7 +95,10 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
     try {
       const res = await fetch(`${BACKEND_URL}/api/coupons`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
         body: JSON.stringify(payload),
       });
 
@@ -129,12 +131,9 @@ export default function PublishForm({ onPublished }: PublishFormProps) {
           <div>
             <label className={labelClass}>商家 ID</label>
             <input
-              name="shopId"
-              value={form.shopId}
-              onChange={handleChange}
-              required
-              placeholder="shop-001"
-              className={inputClass}
+              value={shopId}
+              readOnly
+              className={inputClass + ' bg-gray-50 text-gray-400 cursor-default'}
             />
           </div>
           <div>

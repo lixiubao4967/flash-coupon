@@ -33,7 +33,12 @@ const DURATION_OPTIONS = [
   { value: 240, label: '4 小时' },
 ];
 
-export default function VoicePublisher() {
+interface VoicePublisherProps {
+  apiKey: string;
+  shopId: string;
+}
+
+export default function VoicePublisher({ apiKey, shopId }: VoicePublisherProps) {
   const [stage, setStage] = useState<Stage>('idle');
   const [lang, setLang] = useState<RecogLang>(() => {
     if (typeof navigator === 'undefined') return 'ja-JP';
@@ -140,9 +145,11 @@ export default function VoicePublisher() {
     try {
       const res = await fetch(`${BACKEND_URL}/api/coupons`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-Key': apiKey,
+        },
         body: JSON.stringify({
-          shopId: `voice-${Date.now()}`,
           shopName: draft.shopName,
           item: draft.item,
           discount: draft.discount,
@@ -163,7 +170,7 @@ export default function VoicePublisher() {
       setError(err instanceof Error ? err.message : '发布失败，请重试');
       setStage('confirming');
     }
-  }, [draft]);
+  }, [draft, apiKey]);
 
   // ─── Share ───────────────────────────────────────────────────────────────────
   const handleShare = useCallback(async () => {

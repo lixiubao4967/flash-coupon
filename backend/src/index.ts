@@ -5,6 +5,7 @@ import http from 'http';
 import cron from 'node-cron';
 import { Server as SocketServer } from 'socket.io';
 import { createCouponRouter } from './routes/coupons';
+import { createMerchantRouter, handleStripeWebhook } from './routes/merchants';
 import { getRedisClient } from './services/redis';
 import { fetchHotPepperCoupons } from './services/hotpepper';
 import { fetchGrokSocialCoupons } from './services/grok';
@@ -16,6 +17,14 @@ async function bootstrap() {
   // ─── Express 应用 ──────────────────────────────────────────────────────────
   const app = express();
   app.use(cors({ origin: FRONTEND_URL, credentials: true }));
+
+  // Stripe webhook 必须在 express.json() 之前挂载，因为它需要 raw body
+  app.post(
+    '/api/webhooks/stripe',
+    express.raw({ type: 'application/json' }),
+    handleStripeWebhook
+  );
+
   app.use(express.json());
 
   // 健康检查
@@ -42,6 +51,7 @@ async function bootstrap() {
   });
 
   // ─── 路由 ──────────────────────────────────────────────────────────────────
+  app.use('/api/merchants', createMerchantRouter());
   app.use('/api/coupons', createCouponRouter(io));
 
   // ─── 预连接 Redis ──────────────────────────────────────────────────────────
