@@ -1,4 +1,4 @@
-export type CouponSource = 'manual' | 'hotpepper' | 'social';
+export type CouponSource = 'manual' | 'hotpepper' | 'social' | 'paypay';
 
 export interface Coupon {
   id: string;

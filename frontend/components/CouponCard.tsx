@@ -30,6 +30,12 @@ const SOURCE_CONFIG: Record<
     gradientTo: 'to-blue-400',
     pillBg: 'bg-sky-500/20 text-sky-400 border border-sky-500/30',
   },
+  paypay:    {
+    label: 'PayPay',
+    gradientFrom: 'from-red-500',
+    gradientTo: 'to-pink-400',
+    pillBg: 'bg-red-500/20 text-red-300 border border-red-500/30',
+  },
 };
 
 interface CouponCardProps {

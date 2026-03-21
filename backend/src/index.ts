@@ -9,6 +9,7 @@ import { createMerchantRouter, handleStripeWebhook } from './routes/merchants';
 import { getRedisClient } from './services/redis';
 import { fetchHotPepperCoupons } from './services/hotpepper';
 import { fetchGrokSocialCoupons } from './services/grok';
+import { fetchPayPayCoupons } from './services/paypay';
 
 const PORT = parseInt(process.env.PORT || '4000', 10);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
@@ -77,7 +78,7 @@ async function bootstrap() {
     );
   });
 
-  // Grok / X 社交：每天 7:00 和 19:00（JST）拉取
+  // Grok / X 社交：每天 JST 7:00 和 19:00 拉取
   cron.schedule('0 10,22 * * *', () => {  // UTC 10:00 = JST 19:00, UTC 22:00 = JST 07:00
     console.log('[Cron] Running Grok social coupon fetch...');
     fetchGrokSocialCoupons().catch((err: Error) =>
@@ -85,9 +86,18 @@ async function bootstrap() {
     );
   });
 
+  // PayPay クーポン：每天 JST 8:00 拉取（UTC 23:00）
+  cron.schedule('0 23 * * *', () => {
+    console.log('[Cron] Running PayPay coupon fetch...');
+    fetchPayPayCoupons().catch((err: Error) =>
+      console.error('[Cron] PayPay error:', err.message)
+    );
+  });
+
   // 启动时立即执行一次
   fetchHotPepperCoupons().catch(console.error);
   fetchGrokSocialCoupons().catch(console.error);
+  fetchPayPayCoupons().catch(console.error);
 
   // ─── 优雅关闭 ──────────────────────────────────────────────────────────────
   process.on('SIGTERM', async () => {
