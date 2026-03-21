@@ -76,7 +76,7 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
           Authorization: `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        timeout: 90_000, // Grok web search takes time
+        timeout: 180_000, // Grok web search takes time (up to 3 min)
       }
     );
   } catch (err: unknown) {
