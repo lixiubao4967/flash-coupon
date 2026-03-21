@@ -129,9 +129,11 @@ IMPORTANT: Reply with ONLY the JSON object, no other text.`;
   const now = Date.now();
   let inserted = 0;
 
+  console.log(`[PayPay] Grok returned ${parsed.deals.length} deals`);
+
   for (const deal of parsed.deals) {
-    if (!deal.shopName || !deal.originalUrl) continue;
-    if (existingUrls.has(deal.originalUrl)) continue;
+    if (!deal.shopName) continue;
+    if (deal.originalUrl && existingUrls.has(deal.originalUrl)) continue;
 
     const lat = typeof deal.lat === 'number' ? deal.lat : 35.6762;
     const lng = typeof deal.lng === 'number' ? deal.lng : 139.6503;
